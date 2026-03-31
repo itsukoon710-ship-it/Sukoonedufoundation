@@ -1,0 +1,235 @@
+Build a full demo web application called **“Sukoon Enrollment App”** for an NGO that manages student admission through entrance exams and interviews.
+
+The app should be a **modern responsive web dashboard** built using **Next.js (React)** for the frontend and a simple backend API with a database (SQLite or PostgreSQL). The UI should be clean, professional, and similar to a government or education portal.
+
+The purpose of the system is to manage student enrollment for NGO schools. The NGO conducts an entrance exam and interview before selecting students.
+
+The application must include two main roles:
+
+ADMIN
+COORDINATOR
+
+Students will not have login access.
+
+---
+
+CORE WORKFLOW
+
+1. Student Registration
+   Coordinators will fill a student enrollment form.
+   Fields required in the form:
+
+Student Name
+Father Name
+Mother Name
+Date of Birth
+Gender
+Address
+Mobile Number
+Previous School
+Class Applying For
+Student Photo Upload
+
+After the form is submitted the system should automatically:
+
+Generate a unique Application ID
+Store the student in the database
+Generate an Admit Card
+
+---
+
+2. Admit Card Generation
+
+The system must automatically generate an Admit Card containing:
+
+NGO Logo
+Application ID
+Student Name
+Student Photo
+Exam Date
+Exam Center
+QR Code
+Coordinator Name
+
+Coordinator should be able to:
+
+Download Admit Card
+Print Admit Card
+
+---
+
+3. Entrance Exam Module
+
+After the exam, coordinators will enter marks.
+
+The exam results table should show:
+
+Student Name
+Application ID
+Center
+Coordinator
+Marks
+
+If marks are above a defined cutoff (for example 40), the system automatically marks the student as:
+
+Selected for Interview
+
+---
+
+4. Interview Module
+
+Admin will conduct the interview selection.
+
+Admin can enter:
+
+Interview Marks
+Remarks
+Final Decision
+
+Final decision options:
+
+Selected
+Waiting List
+Rejected
+
+---
+
+5. Final Admission List
+
+Admin can generate the final list of admitted students.
+
+Admin can export:
+
+Excel
+CSV
+PDF
+
+---
+
+CENTER MANAGEMENT
+
+The NGO has multiple centers.
+
+Each coordinator belongs to one center.
+
+Admin should be able to create and manage centers.
+
+Example centers:
+
+Delhi Learning Center
+Noida Learning Center
+Ghaziabad Center
+
+Students must be linked to a center automatically based on the coordinator.
+
+---
+
+COORDINATOR TRACKING
+
+Admin must be able to see performance analytics.
+
+The dashboard must show:
+
+Total Students Registered
+Students per Coordinator
+Students per Center
+
+Example tables:
+
+Coordinator Performance
+
+Coordinator Name | Center | Students Registered
+
+Center Performance
+
+Center Name | Total Students
+
+---
+
+ADMIN DASHBOARD
+
+The admin dashboard should look professional and contain:
+
+Sidebar Navigation
+
+Dashboard
+Students
+Centers
+Coordinators
+Exam Results
+Interview Selection
+Admissions
+Reports
+
+Dashboard Cards
+
+Total Students
+Exam Completed
+Interview Selected
+Final Admissions
+
+Charts
+
+Students by Center
+Students by Coordinator
+
+---
+
+COORDINATOR DASHBOARD
+
+Coordinators should have limited access.
+
+Menu:
+
+Dashboard
+Add Student
+Students List
+Admit Cards
+Exam Marks Entry
+
+Coordinators should only see students they created.
+
+---
+
+DATA MANAGEMENT
+
+Admin should be able to export student data at the end of the admission cycle.
+
+The system must support an "Admission Year" field so data can be separated by year.
+
+Example:
+
+2026 Admission
+2027 Admission
+
+Admin should also be able to archive or clear data after exporting.
+
+---
+
+UI DESIGN REQUIREMENTS
+
+Use a clean modern dashboard layout.
+
+Use a left sidebar and top navigation.
+
+Make the UI responsive for desktop and mobile.
+
+Use modern UI components and soft colors suitable for an NGO or educational system.
+
+---
+
+DEMO DATA
+
+The demo should include sample data such as:
+
+3 Centers
+3 Coordinators
+10 Sample Students
+
+---
+
+GOAL OF THIS DEMO
+
+The demo should simulate a real NGO admission management system where coordinators register students, generate admit cards, enter exam marks, and the admin selects final students.
+
+Focus on showing the workflow and dashboard analytics.
