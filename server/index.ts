@@ -88,27 +88,14 @@ if (process.env.NODE_ENV === "production") {
   serveStatic(app);
 }
 
-// Async setup for development and database operations
-(async () => {
-  try {
-    // Run migrations and seed database
-    const { runMigrations } = await import("./migrate");
-    await runMigrations();
-
-    const { seedDatabase } = await import("./seed");
-    await seedDatabase();
-
-    // Setup Vite in development
-    if (process.env.NODE_ENV !== "production") {
-      const { setupVite } = await import("./vite");
-      await setupVite(httpServer, app);
-    }
-
-    log("App setup complete");
-  } catch (error) {
-    console.error("Error during app setup:", error);
-  }
-})();
+// Setup Vite in development
+if (process.env.NODE_ENV !== "production") {
+  import("./vite").then(({ setupVite }) => {
+    setupVite(httpServer, app);
+  }).catch(error => {
+    console.error("Error setting up Vite:", error);
+  });
+}
 
 // Export the app for Vercel serverless functions
 export default app;
