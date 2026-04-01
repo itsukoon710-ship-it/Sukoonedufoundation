@@ -4,6 +4,11 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 
+declare global {
+  var migrationsRun: boolean;
+  var databaseSeeded: boolean;
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -60,44 +65,45 @@ app.use((req, res, next) => {
   next();
 });
 
-// Run migrations and setup app
-let appReady = false;
+// Setup routes synchronously (the async parts are handled in the strategy callbacks)
+registerRoutes(httpServer, app).catch(error => {
+  console.error("Error registering routes:", error);
+});
 
+app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+
+  console.error("Internal Server Error:", err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  return res.status(status).json({ message });
+});
+
+// Setup static serving for production
+if (process.env.NODE_ENV === "production") {
+  serveStatic(app);
+}
+
+// Async setup for development and database operations
 (async () => {
   try {
-    // Run migrations first
+    // Run migrations and seed database
     const { runMigrations } = await import("./migrate");
     await runMigrations();
 
-    // Then seed database
     const { seedDatabase } = await import("./seed");
     await seedDatabase();
-    await registerRoutes(httpServer, app);
 
-    app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-
-      console.error("Internal Server Error:", err);
-
-      if (res.headersSent) {
-        return next(err);
-      }
-
-      return res.status(status).json({ message });
-    });
-
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (process.env.NODE_ENV === "production") {
-      serveStatic(app);
-    } else {
+    // Setup Vite in development
+    if (process.env.NODE_ENV !== "production") {
       const { setupVite } = await import("./vite");
       await setupVite(httpServer, app);
     }
 
-    appReady = true;
     log("App setup complete");
   } catch (error) {
     console.error("Error during app setup:", error);
