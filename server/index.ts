@@ -4,7 +4,6 @@ import cors from "cors";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
 import { createServer } from "http";
-import { pool } from "./db.js";
 
 declare global {
   var migrationsRun: boolean;
@@ -99,9 +98,6 @@ if (process.env.NODE_ENV !== "production") {
     console.error("Error setting up Vite:", error);
   });
 }
-
-// Ensure database connection before starting
-await pool.query('SELECT 1');
 
 // Export the app for Vercel serverless functions
 export default app;
