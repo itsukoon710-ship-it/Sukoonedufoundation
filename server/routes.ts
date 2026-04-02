@@ -289,6 +289,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // PUBLIC GET STUDENT BY APPLICATION ID (for admit card generation)
+  app.get("/api/public/student/:applicationId", async (req, res) => {
+    try {
+      const { applicationId } = req.params;
+      
+      const student = await storage.getStudentByApplicationId(applicationId);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      // Return only necessary fields for admit card
+      res.json({
+        id: student.id,
+        applicationId: student.applicationId,
+        name: student.name,
+        fatherName: student.fatherName,
+        motherName: student.motherName,
+        dateOfBirth: student.dateOfBirth,
+        gender: student.gender,
+        classApplying: student.classApplying,
+        examCenter: student.examCenter,
+        photoUrl: student.photoUrl,
+        admissionYear: student.admissionYear,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // AUTH ROUTES
   app.post("/api/auth/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {

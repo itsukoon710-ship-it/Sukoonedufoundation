@@ -118,7 +118,7 @@ function AppLayout() {
                <Route path="/coordinators" component={() => <ProtectedRoute component={CoordinatorsPage} adminOnly={true} />} />
                <Route path="/reports" component={() => <ProtectedRoute component={ReportsPage} adminOnly={true} />} />
                <Route path="/login" component={() => <Redirect to="/" />} />
-               <Route path="/register" component={() => <Redirect to="/" />} />
+               <Route path="/register" component={PublicRegistrationPage} />
                <Route component={NotFound} />
              </Switch>
           </main>
