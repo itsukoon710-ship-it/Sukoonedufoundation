@@ -9,12 +9,16 @@ function getPoolConfig() {
     throw new Error("DATABASE_URL environment variable is not set");
   }
   
-  // Check if running in production (Vercel)
-  const isProduction = process.env.NODE_ENV === "production";
+  // Add sslmode=require if not already present
+  let connectionString = dbUrl;
+  if (!dbUrl.includes("sslmode")) {
+    const separator = dbUrl.includes("?") ? "&" : "?";
+    connectionString = `${dbUrl}${separator}sslmode=require`;
+  }
   
   return {
-    connectionString: dbUrl,
-    ssl: isProduction ? true : { rejectUnauthorized: false },
+    connectionString,
+    ssl: { rejectUnauthorized: false },
   };
 }
 

@@ -120,7 +120,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   }
   
   app.use(session({
-    store: new PgSession({ pool, createTableIfMissing: true }),
+    store: new PgSession({ 
+      pool, 
+      createTableIfMissing: true,
+      tableName: 'session'
+    }),
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
