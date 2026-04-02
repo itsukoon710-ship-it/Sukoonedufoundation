@@ -21,6 +21,14 @@
       "dest": "/public/assets/$1"
     },
     {
+      "src": "/Logo.png",
+      "dest": "/public/Logo.png"
+    },
+    {
+      "src": "/favicon.png",
+      "dest": "/public/favicon.png"
+    },
+    {
       "src": "/((?!api|assets/).*)",
       "dest": "/public/index.html"
     }
