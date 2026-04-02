@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
 import { createServer } from "http";
@@ -26,6 +27,7 @@ app.use(
   }),
 );
 
+app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 
 export function log(message: string, source = "express") {
