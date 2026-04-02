@@ -113,19 +113,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.use("/api/auth/login", loginRateLimiter);
   app.use("/api", apiRateLimiter);
 
-  // Session setup
+  // Session setup - use pg session store with pool from ./db
   const sessionSecret = process.env.SESSION_SECRET;
   if (!sessionSecret) {
     throw new Error("SESSION_SECRET environment variable is required");
   }
   
+  // Use pg session store with the same pool from ./db
   app.use(session({
-    store: new PgSession({ 
-      pool, 
-      createTableIfMissing: true,
+    secret: sessionSecret,
+    store: new PgSession({
+      pool: pool,
       tableName: 'session'
     }),
-    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
