@@ -83,8 +83,8 @@ app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
   return res.status(status).json({ message });
 });
 
-// Setup static serving for production
-if (process.env.NODE_ENV === "production") {
+// Setup static serving for production (skip in Vercel as static files are handled separately)
+if (process.env.NODE_ENV === "production" && process.env.VERCEL !== "1") {
   serveStatic(app);
 }
 
