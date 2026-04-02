@@ -1,7 +1,7 @@
 
 import { storage } from "./storage.js";
 import { db } from "./db.js";
-import { users, centers, students, admissionYears, examResults, interviewResults, subjects, studentSubjectMarks } from "@shared/schema";
+import { users, centers, students, admissionYears, examResults, interviewResults, subjects, studentSubjectMarks } from "../shared/schema.js";
 import { sql } from "drizzle-orm";
 
 export async function seedDatabase() {

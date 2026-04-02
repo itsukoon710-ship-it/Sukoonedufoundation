@@ -11,7 +11,7 @@ import {
   type AdmissionYear, type InsertAdmissionYear,
   type Subject, type InsertSubject,
   type StudentSubjectMarks, type InsertStudentSubjectMarks,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 

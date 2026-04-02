@@ -1,5 +1,5 @@
 import { db } from "./db.js";
-import { users } from "@shared/schema";
+import { users } from "../shared/schema.js";
 import bcrypt from "bcryptjs";
 import { sql } from "drizzle-orm";
 

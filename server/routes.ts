@@ -8,7 +8,7 @@ import bcrypt from "bcryptjs";
 import { pool } from "./db.js";
 import rateLimit from "express-rate-limit";
 import { storage } from "./storage.js";
-import { insertStudentSchema, insertCenterSchema, insertUserSchema, insertExamResultSchema, insertInterviewResultSchema, insertAdmissionYearSchema, insertSubjectSchema, insertStudentSubjectMarksSchema, type User } from "@shared/schema";
+import { insertStudentSchema, insertCenterSchema, insertUserSchema, insertExamResultSchema, insertInterviewResultSchema, insertAdmissionYearSchema, insertSubjectSchema, insertStudentSubjectMarksSchema, type User } from "../shared/schema.js";
 
 // Constants
 const SESSION_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
