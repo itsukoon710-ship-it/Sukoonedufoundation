@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import {
   users, centers, students, examResults, interviewResults, admissionYears,

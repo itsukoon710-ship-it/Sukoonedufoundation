@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
+import { registerRoutes } from "./routes.js";
+import { serveStatic } from "./static.js";
 import { createServer } from "http";
 
 declare global {
@@ -90,7 +90,7 @@ if (process.env.NODE_ENV === "production") {
 
 // Setup Vite in development
 if (process.env.NODE_ENV !== "production") {
-  import("./vite").then(({ setupVite }) => {
+  import("./vite.js").then(({ setupVite }) => {
     setupVite(httpServer, app);
   }).catch(error => {
     console.error("Error setting up Vite:", error);

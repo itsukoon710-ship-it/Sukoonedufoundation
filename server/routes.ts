@@ -5,9 +5,9 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
-import { pool } from "./db";
+import { pool } from "./db.js";
 import rateLimit from "express-rate-limit";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { insertStudentSchema, insertCenterSchema, insertUserSchema, insertExamResultSchema, insertInterviewResultSchema, insertAdmissionYearSchema, insertSubjectSchema, insertStudentSubjectMarksSchema, type User } from "@shared/schema";
 
 // Constants
