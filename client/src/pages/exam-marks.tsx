@@ -149,6 +149,12 @@ export default function ExamMarksPage() {
     return v && parseInt(v) >= s.passingMarks;
   }).length;
 
+  const isSelectedForInterview = activeYear ? (
+    activeYear.selectionMode === "all_pass" ? computedPassed === activeSubjects.length :
+    activeYear.selectionMode === "min_subjects" ? computedPassed >= (activeYear.minSubjectsToPass || 3) :
+    computedTotal >= (activeYear.totalCutoffMarks || 120)
+  ) : false;
+
   return (
     <div className="p-6 space-y-5 max-w-5xl mx-auto">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -331,18 +337,18 @@ export default function ExamMarksPage() {
 
               {/* Result banner */}
               {result && (
-                <div className={`rounded-lg p-3 flex items-start gap-2 border ${result.selectedForInterview ? "bg-green-50 dark:bg-green-900/20 border-green-200" : "bg-red-50 dark:bg-red-900/20 border-red-200"}`}>
-                  {result.selectedForInterview
+                <div className={`rounded-lg p-3 flex items-start gap-2 border ${isSelectedForInterview ? "bg-green-50 dark:bg-green-900/20 border-green-200" : "bg-red-50 dark:bg-red-900/20 border-red-200"}`}>
+                  {isSelectedForInterview
                     ? <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                     : <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                   }
                   <div className="text-sm">
                     <p className="font-semibold">
-                      {result.selectedForInterview ? "✓ Selected for Interview" : "✗ Not Selected for Interview"}
+                      {isSelectedForInterview ? "✓ Selected for Interview" : "✗ Not Selected for Interview"}
                     </p>
                     <p className="text-muted-foreground text-xs mt-0.5">
-                      Total: {result.totalMarks}/{result.totalMaxMarks} ·
-                      Passed: {result.subjectsPassed}/{activeSubjects.length} subjects
+                      Total: {computedTotal}/{activeSubjects.reduce((s, sub) => s + sub.maxMarks, 0)} ·
+                      Passed: {computedPassed}/{activeSubjects.length} subjects
                     </p>
                   </div>
                 </div>

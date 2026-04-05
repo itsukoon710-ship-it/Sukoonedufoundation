@@ -617,7 +617,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/exam-results", requireAuth, async (req, res) => {
     try {
       const results = await storage.getExamResults();
-      res.json(results);
+      
+      // Get admission year settings for dynamic calculation
+      const admissionYears = await storage.getAdmissionYears();
+      const activeYear = admissionYears.find(y => y.isActive);
+      
+      let selectionCriteria = null;
+      if (activeYear) {
+        const subjects = await storage.getSubjects(activeYear.year);
+        const activeSubjects = subjects.filter(s => s.isActive);
+        selectionCriteria = {
+          selectionMode: activeYear.selectionMode,
+          minSubjectsToPass: activeYear.minSubjectsToPass,
+          totalCutoffMarks: activeYear.totalCutoffMarks,
+          totalSubjects: activeSubjects.length,
+        };
+      }
+      
+      res.json({ results, selectionCriteria });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -906,18 +923,45 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
        
        console.log("Exam result found:", examResult ? "Yes" : "No", examResult ? examResult.id : "N/A");
        
-       if (!examResult) {
-         return res.status(404).json({ message: "Exam result not found" });
-       }
-       
-       res.json({
-         rollNumber: student.applicationId,
-         name: student.name,
-         marks: examResult.marks,
-         maxMarks: examResult.maxMarks,
-         selectedForInterview: examResult.selectedForInterview,
-         status: student.status,
-       });
+if (!examResult) {
+          return res.status(404).json({ message: "Exam result not found" });
+        }
+        
+        // Get student subject marks for dynamic comparison
+        const studentSubjectMarks = await storage.getStudentSubjectMarks(student.id);
+        
+        // Get exam settings for dynamic comparison
+        const subjects = await storage.getSubjects(activeYear.year);
+        const activeSubjects = subjects.filter(s => s.isActive);
+        const passCount = activeSubjects.reduce((count, sub) => {
+          const subjectMark = studentSubjectMarks.find(m => m.subjectId === sub.id);
+          return count + (subjectMark && subjectMark.marks >= sub.passingMarks ? 1 : 0);
+        }, 0);
+        const totalMarks = studentSubjectMarks.reduce((sum, m) => sum + m.marks, 0);
+        
+        let isSelected = false;
+        if (activeYear.selectionMode === "all_pass") {
+          isSelected = passCount === activeSubjects.length;
+        } else if (activeYear.selectionMode === "min_subjects") {
+          isSelected = passCount >= (activeYear.minSubjectsToPass || 3);
+        } else if (activeYear.selectionMode === "total_marks") {
+          isSelected = totalMarks >= (activeYear.totalCutoffMarks || 120);
+        }
+        
+        res.json({
+          rollNumber: student.applicationId,
+          name: student.name,
+          marks: examResult.marks,
+          maxMarks: examResult.maxMarks,
+          selectedForInterview: isSelected,
+          status: student.status,
+          selectionMode: activeYear.selectionMode,
+          minSubjectsToPass: activeYear.minSubjectsToPass,
+          totalCutoffMarks: activeYear.totalCutoffMarks,
+          subjectsPassed: passCount,
+          totalSubjects: activeSubjects.length,
+          totalMarks,
+        });
      } catch (err: any) {
        res.status(500).json({ message: err.message });
      }
