@@ -15,6 +15,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Student } from "@shared/schema";
 
+type InterviewCandidate = {
+  student: Student;
+  marks?: number;
+  maxMarks?: number;
+};
+
 type ExamResultWithStudent = {
   id: string;
   studentId: string;
@@ -46,6 +52,10 @@ export default function InterviewPage() {
     queryKey: ["/api/exam-results"],
   });
 
+  const { data: allStudents = [] } = useQuery<Student[]>({
+    queryKey: ["/api/students"],
+  });
+
   const { data: interviewResults = [] } = useQuery<InterviewResultWithStudent[]>({
     queryKey: ["/api/interview-results"],
   });
@@ -55,6 +65,7 @@ export default function InterviewPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/interview-results"] });
       qc.invalidateQueries({ queryKey: ["/api/students"] });
+      qc.invalidateQueries({ queryKey: ["/api/exam-results"] });
       qc.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       toast({ title: "Interview Result Saved" });
       setSelectedStudent(null);
@@ -66,13 +77,45 @@ export default function InterviewPage() {
     },
   });
 
-  // Only show students selected for interview
-  const selectedForInterview = examResults.filter(r => r.selectedForInterview);
-
-  const filteredResults = selectedForInterview.filter(r =>
+  // Get students with status "selected_for_interview" directly from students table
+  const studentsSelectedForInterview = allStudents.filter(s => s.status === "selected_for_interview");
+  
+  // Create a map of studentId -> exam result for quick lookup
+  const examResultsMap = new Map<string, { marks: number; maxMarks: number }>();
+  examResults.forEach((r: any) => {
+    if (r.selectedForInterview && r.student) {
+      examResultsMap.set(r.student.id, { marks: r.marks, maxMarks: r.maxMarks });
+    }
+  });
+  
+  // Combine both sources and deduplicate by student id, preserving exam marks
+  const allInterviewCandidates: InterviewCandidate[] = [];
+  
+  // First add students from the students table
+  studentsSelectedForInterview.forEach(student => {
+    const examInfo = examResultsMap.get(student.id);
+    allInterviewCandidates.push({
+      student,
+      marks: examInfo?.marks,
+      maxMarks: examInfo?.maxMarks,
+    });
+  });
+  
+  // Then add exam results students that aren't already in the list
+  examResults.forEach((r: any) => {
+    if (r.selectedForInterview && r.student && !allInterviewCandidates.find(c => c.student.id === r.student.id)) {
+      allInterviewCandidates.push({
+        student: r.student,
+        marks: r.marks,
+        maxMarks: r.maxMarks,
+      });
+    }
+  });
+  
+  const filteredResults = allInterviewCandidates.filter(c =>
     !search ||
-    r.student.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.student.applicationId.toLowerCase().includes(search.toLowerCase())
+    c.student.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.student.applicationId.toLowerCase().includes(search.toLowerCase())
   );
 
   const getInterviewResult = (studentId: string) =>
@@ -112,7 +155,7 @@ export default function InterviewPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "For Interview", count: selectedForInterview.length, color: "text-blue-600" },
+          { label: "For Interview", count: allInterviewCandidates.length, color: "text-blue-600" },
           { label: "Interviewed", count: interviewResults.length, color: "text-purple-600" },
           { label: "Selected", count: interviewResults.filter(r => r.decision === "selected").length, color: "text-green-600" },
         ].map(stat => (
@@ -169,22 +212,22 @@ export default function InterviewPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredResults.map(result => {
-                    const iResult = getInterviewResult(result.student.id);
+                  {filteredResults.map(candidate => {
+                    const iResult = getInterviewResult(candidate.student.id);
                     const decConf = iResult ? decisionConfig[iResult.decision] : null;
                     const DecIcon = decConf?.icon;
                     return (
-                      <TableRow key={result.id} data-testid={`row-interview-${result.student.id}`}>
+                      <TableRow key={candidate.student.id} data-testid={`row-interview-${candidate.student.id}`}>
                         <TableCell className="font-mono text-xs text-primary font-medium">
-                          {result.student.applicationId}
+                          {candidate.student.applicationId}
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium text-sm">{result.student.name}</p>
-                          <p className="text-xs text-muted-foreground">{result.student.classApplying}</p>
+                          <p className="font-medium text-sm">{candidate.student.name}</p>
+                          <p className="text-xs text-muted-foreground">{candidate.student.classApplying}</p>
                         </TableCell>
                         <TableCell>
-                          <span className="font-semibold text-green-600">{result.marks}</span>
-                          <span className="text-xs text-muted-foreground"> / {result.maxMarks}</span>
+                          <span className="font-semibold text-green-600">{candidate.marks ?? "—"}</span>
+                          <span className="text-xs text-muted-foreground">{candidate.maxMarks ? ` / ${candidate.maxMarks}` : ""}</span>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           {iResult ? (
@@ -210,8 +253,8 @@ export default function InterviewPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openInterviewEntry(result.student)}
-                            data-testid={`button-interview-${result.student.id}`}
+                            onClick={() => openInterviewEntry(candidate.student)}
+                            data-testid={`button-interview-${candidate.student.id}`}
                           >
                             <Edit className="w-3 h-3 mr-1" />
                             {iResult ? "Update" : "Record"}
