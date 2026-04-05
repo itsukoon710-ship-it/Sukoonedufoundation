@@ -52,9 +52,10 @@ export default function InterviewPage() {
     queryKey: ["/api/exam-results"],
   });
 
-  const { data: allStudents = [] } = useQuery<Student[]>({
+  const { data: allStudentsData } = useQuery<{ students: Student[]; total: number }>({
     queryKey: ["/api/students"],
   });
+  const allStudents = allStudentsData?.students ?? [];
 
   const { data: interviewResults = [] } = useQuery<InterviewResultWithStudent[]>({
     queryKey: ["/api/interview-results"],
