@@ -48,9 +48,10 @@ export default function InterviewPage() {
   const [remarks, setRemarks] = useState("");
   const [decision, setDecision] = useState<"selected" | "waitlisted" | "rejected">("selected");
 
-  const { data: examResults = [], isLoading } = useQuery<ExamResultWithStudent[]>({
+  const { data: examResultsData, isLoading } = useQuery<{ results: ExamResultWithStudent[]; selectionCriteria: any }>({
     queryKey: ["/api/exam-results"],
   });
+  const examResults = examResultsData?.results ?? [];
 
   const { data: allStudentsData } = useQuery<{ students: Student[]; total: number }>({
     queryKey: ["/api/students"],
