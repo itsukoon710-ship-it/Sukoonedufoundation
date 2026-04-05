@@ -11,12 +11,35 @@ import type { Student } from "@shared/schema";
 
 export default function AdmissionsPage() {
   const [filterDecision, setFilterDecision] = useState("all");
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { data, isLoading } = useQuery<{ students: Student[]; total: number }>({
-    queryKey: ["/api/students"],
+    queryKey: ["/api/students", page, limit, filterDecision],
+    queryFn: async () => {
+      const res = await fetch(`/api/students?page=${page}&limit=${limit}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch students");
+      return res.json();
+    },
+  });
+
+  const { data: allData, refetch: refetchAll } = useQuery<{ students: Student[]; total: number }>({
+    queryKey: ["/api/students/export"],
+    queryFn: async () => {
+      const res = await fetch(`/api/students/export`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch students");
+      return res.json();
+    },
+    enabled: false,
   });
 
   const students = data?.students ?? [];
+  const totalStudents = data?.total ?? 0;
+  const totalPages = Math.ceil(totalStudents / limit);
 
   const { data: interviewResults = [] } = useQuery<any[]>({
     queryKey: ["/api/interview-results"],
@@ -40,9 +63,16 @@ export default function AdmissionsPage() {
     rejected: { label: "Rejected", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
   };
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
+    await refetchAll();
+    const exportData = allData?.students ?? [];
+    
+    const finalExportStudents = exportData.filter(s =>
+      ["admitted", "waitlisted", "rejected"].includes(s.status)
+    );
+    
     const headers = ["Application ID", "Student Name", "Father Name", "Class", "Mobile", "Exam Center", "Status", "Interview Marks", "Remarks"];
-    const rows = filteredStudents.map(s => {
+    const rows = finalExportStudents.map(s => {
       const ir = getInterviewResult(s.id);
       return [
         s.applicationId, s.name, s.fatherName, s.classApplying, s.phone,
@@ -59,12 +89,19 @@ export default function AdmissionsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const exportText = () => {
-    const lines = filteredStudents.map((s, i) => {
+  const exportText = async () => {
+    await refetchAll();
+    const exportData = allData?.students ?? [];
+    
+    const finalExportStudents = exportData.filter(s =>
+      ["admitted", "waitlisted", "rejected"].includes(s.status)
+    );
+    
+    const lines = finalExportStudents.map((s, i) => {
       const ir = getInterviewResult(s.id);
       return `${i + 1}. ${s.applicationId} | ${s.name} | ${s.classApplying} | ${s.status.toUpperCase()}${ir ? ` | ${ir.interviewMarks}/100` : ""}`;
     });
-    const content = `SUKOON NGO — FINAL ADMISSION LIST 2026\n${"=".repeat(50)}\n\n${lines.join("\n")}\n\nTotal: ${filteredStudents.length} students`;
+    const content = `SUKOON NGO — FINAL ADMISSION LIST 2026\n${"=".repeat(50)}\n\n${lines.join("\n")}\n\nTotal: ${finalExportStudents.length} students`;
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -111,7 +148,7 @@ export default function AdmissionsPage() {
 
       {/* Filter */}
       <div className="flex gap-3 items-center">
-        <Select value={filterDecision} onValueChange={setFilterDecision}>
+        <Select value={filterDecision} onValueChange={(val) => { setFilterDecision(val); setPage(1); }}>
           <SelectTrigger className="w-44" data-testid="select-admission-filter">
             <SelectValue />
           </SelectTrigger>
@@ -191,6 +228,32 @@ export default function AdmissionsPage() {
                   })}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

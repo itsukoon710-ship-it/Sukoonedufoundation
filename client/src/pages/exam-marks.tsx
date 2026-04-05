@@ -21,11 +21,22 @@ export default function ExamMarksPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [marksInput, setMarksInput] = useState<Record<string, string>>({});
   const [result, setResult] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { data: studentsData, isLoading: studentsLoading } = useQuery<{ students: Student[]; total: number }>({
-    queryKey: ["/api/students"],
+    queryKey: ["/api/students", page, limit],
+    queryFn: async () => {
+      const res = await fetch(`/api/students?page=${page}&limit=${limit}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch students");
+      return res.json();
+    },
   });
   const students = studentsData?.students ?? [];
+  const totalStudents = studentsData?.total ?? 0;
+  const totalPages = Math.ceil(totalStudents / limit);
 
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -270,6 +281,32 @@ export default function ExamMarksPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

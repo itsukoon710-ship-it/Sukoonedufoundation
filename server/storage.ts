@@ -541,9 +541,15 @@ export class DatabaseStorage implements IStorage {
     if (filters?.admissionYear) conditions.push(eq(students.admissionYear, filters.admissionYear));
     if (filters?.status) conditions.push(eq(students.status, filters.status as any));
     
-    // Get total count
-    const countResult = await db.select({ count: sql<number>`count(*)` }).from(students);
-    let total = Number(countResult[0].count);
+    // Get total count with filters applied
+    let total = 0;
+    if (conditions.length > 0) {
+      const countResult = await db.select({ count: sql<number>`count(*)` }).from(students).where(and(...conditions));
+      total = Number(countResult[0].count);
+    } else {
+      const countResult = await db.select({ count: sql<number>`count(*)` }).from(students);
+      total = Number(countResult[0].count);
+    }
     
     // Build query based on conditions
     let studentList: Student[];

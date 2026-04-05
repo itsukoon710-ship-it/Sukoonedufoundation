@@ -522,6 +522,31 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Get all students for export (no pagination)
+  app.get("/api/students/export", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const filters: any = {};
+      
+      if (req.query.status) filters.status = req.query.status;
+      if (req.query.admissionYear) filters.admissionYear = parseInt(req.query.admissionYear as string);
+      if (req.query.centerId) filters.centerId = req.query.centerId;
+      if (req.query.coordinatorId) filters.coordinatorId = req.query.coordinatorId;
+      if (req.query.search) filters.search = req.query.search;
+      
+      // Coordinators can only see their own students
+      if (user.role === "coordinator") {
+        filters.coordinatorId = user.id;
+      }
+      
+      // Get all students without pagination (limit: 10000)
+      const result = await storage.getStudents(filters, { limit: 10000, offset: 0 });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/students/:id", requireAuth, async (req, res) => {
     try {
       const id = getStringParam(req.params.id);

@@ -164,7 +164,6 @@ export default function PublicRegistrationPage() {
     if (birthDate < minDate || birthDate > maxDate) {
       alert("Age not eligible");
       onChange("");
-      form.setValue("age", undefined);
       return;
     }
     

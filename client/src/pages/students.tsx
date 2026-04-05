@@ -28,14 +28,37 @@ export default function StudentsPage() {
   const { data: user } = useAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const limit = 20;
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery<{ students: Student[]; total: number }>({
-    queryKey: ["/api/students"],
+    queryKey: ["/api/students", page, limit, statusFilter],
+    queryFn: async () => {
+      const res = await fetch(`/api/students?page=${page}&limit=${limit}&status=${statusFilter}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch students");
+      return res.json();
+    },
+  });
+
+  const { data: allData, refetch: refetchAll } = useQuery<{ students: Student[]; total: number }>({
+    queryKey: ["/api/students/export", statusFilter],
+    queryFn: async () => {
+      const res = await fetch(`/api/students/export?status=${statusFilter}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch students");
+      return res.json();
+    },
+    enabled: false,
   });
 
   const students = data?.students ?? [];
+  const totalStudents = data?.total ?? 0;
+  const totalPages = Math.ceil(totalStudents / limit);
 
   const filteredStudents = students.filter(s => {
     const matchSearch = !search ||
@@ -46,7 +69,10 @@ export default function StudentsPage() {
     return matchSearch && matchStatus;
   });
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
+    await refetchAll();
+    const exportData = allData?.students ?? [];
+    
     const headers = [
       'Application ID',
       'Student Name',
@@ -72,7 +98,7 @@ export default function StudentsPage() {
 
     const csvContent = [
       headers.join(','),
-      ...filteredStudents.map(student => [
+      ...exportData.map(student => [
         student.applicationId,
         `"${student.name}"`,
         student.age,
@@ -133,7 +159,7 @@ export default function StudentsPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total", count: students.length, filter: "all" },
+          { label: "Total", count: totalStudents, filter: "all" },
           { label: "Registered", count: students.filter(s => s.status === "registered").length, filter: "registered" },
           { label: "Selected", count: students.filter(s => s.status === "selected_for_interview").length, filter: "selected_for_interview" },
           { label: "Admitted", count: students.filter(s => s.status === "admitted").length, filter: "admitted" },
@@ -166,7 +192,7 @@ export default function StudentsPage() {
             data-testid="input-search-students"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-48" data-testid="select-status-filter">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -266,6 +292,32 @@ export default function StudentsPage() {
                   })}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
