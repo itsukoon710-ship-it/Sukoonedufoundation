@@ -56,7 +56,7 @@ const indianStates = [
   "Delhi", "Jammu and Kashmir", "Ladakh", "Puducherry", "Chandigarh"
 ];
 
-const classes = ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
+const classes = ["Class 6", "Class 7"];
 
 export default function PublicRegistrationPage() {
   const { toast } = useToast();
@@ -137,6 +137,44 @@ export default function PublicRegistrationPage() {
       });
     },
   });
+
+  const calculateAgeFromDOB = (dob: string): number | null => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
+    const selectedDate = e.target.value;
+    if (!selectedDate) {
+      onChange("");
+      return;
+    }
+    
+    const minDate = new Date("2012-06-01");
+    const maxDate = new Date("2015-03-31");
+    const birthDate = new Date(selectedDate);
+    
+    if (birthDate < minDate || birthDate > maxDate) {
+      alert("Age not eligible");
+      onChange("");
+      form.setValue("age", undefined);
+      return;
+    }
+    
+    onChange(selectedDate);
+    
+    const age = calculateAgeFromDOB(selectedDate);
+    if (age !== null) {
+      form.setValue("age", age);
+    }
+  };
 
   const onSubmit = (data: FormData) => mutation.mutate(data);
 
@@ -603,7 +641,15 @@ export default function PublicRegistrationPage() {
                             <FormItem>
                               <FormLabel>Age *</FormLabel>
                               <FormControl>
-                                <Input {...field} type="number" placeholder="Enter age" className="h-11" min={5} max={25} />
+                                <Input 
+                                  {...field} 
+                                  type="number" 
+                                  placeholder="Age" 
+                                  className="h-11" 
+                                  min={5} 
+                                  max={25} 
+                                  readOnly 
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -617,7 +663,12 @@ export default function PublicRegistrationPage() {
                           <FormItem>
                             <FormLabel>Date of Birth *</FormLabel>
                             <FormControl>
-                              <Input {...field} type="date" className="h-11" />
+                              <Input 
+                                {...field} 
+                                type="date" 
+                                className="h-11"
+                                onChange={(e) => handleDateOfBirthChange(e, field.onChange)}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
