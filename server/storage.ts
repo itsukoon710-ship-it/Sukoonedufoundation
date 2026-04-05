@@ -1036,11 +1036,32 @@ export class DatabaseStorage implements IStorage {
     }
 
   async generateApplicationId(admissionYear: number): Promise<string> {
-    const count = await db.select({ count: sql<number>`count(*)` })
-      .from(students)
-      .where(eq(students.admissionYear, admissionYear));
-    const num = (Number(count[0].count) + 1).toString().padStart(4, "0");
-    return `SKN-${admissionYear}-${num}`;
+    const generateRandomId = () => {
+      const timestamp = Date.now().toString().slice(-6);
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+      return `${timestamp}${random}`;
+    };
+
+    let applicationId = `SKN-${admissionYear}-${generateRandomId()}`;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      const existing = await db.select({ id: sql<string>`id` })
+        .from(students)
+        .where(eq(students.applicationId, applicationId))
+        .limit(1);
+
+      if (existing.length === 0) {
+        return applicationId;
+      }
+
+      applicationId = `SKN-${admissionYear}-${generateRandomId()}`;
+      attempts++;
+    }
+
+    const fallbackId = `${admissionYear}${Date.now()}`;
+    return `SKN-${admissionYear}-${fallbackId}`;
   }
 }
 
