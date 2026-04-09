@@ -22,6 +22,19 @@ export default function ReportsPage() {
     queryKey: ["/api/students"],
   });
   const students = studentsData?.students ?? [];
+  
+  // Use export API for CSV to get all students, not paginated
+  const { data: allStudentsData, refetch: refetchAllStudents } = useQuery<{ students: Student[]; total: number }>({
+    queryKey: ["/api/students/export"],
+    queryFn: async () => {
+      const res = await fetch(`/api/students/export?admissionYear=${year}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch students for export");
+      return res.json();
+    },
+    enabled: false,
+  });
   const { data: coordinators = [] } = useQuery<any[]>({ queryKey: ["/api/coordinators"] });
   const { data: centers = [] } = useQuery<any[]>({ queryKey: ["/api/centers"] });
   const { data: examResults = [] } = useQuery<any[]>({ queryKey: ["/api/exam-results"] });
@@ -96,9 +109,13 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
+    await refetchAllStudents();
+    const exportStudents = allStudentsData?.students ?? [];
+    const filteredForExport = exportStudents.filter(s => s.admissionYear === parseInt(year));
+    
     const headers = ["App ID", "Name", "Father", "Mother", "Gender", "DOB", "Class", "Mobile", "Center", "Status", "Exam Marks", "Interview Decision"];
-    const rows = filteredStudents.map(s => {
+    const rows = filteredForExport.map(s => {
       const er = examResults.find((r: any) => r.student?.id === s.id);
       const ir = interviewResults.find((r: any) => r.studentId === s.id);
       return [

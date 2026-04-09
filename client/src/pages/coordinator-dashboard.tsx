@@ -68,6 +68,14 @@ export default function CoordinatorDashboardPage() {
     },
   });
 
+  const { data: counts } = useQuery<{ total: number; registered: number; selected: number; admitted: number }>({
+    queryKey: ["/api/students/counts"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/students/counts");
+      return res.json();
+    },
+  });
+
   const students = studentsData?.students || [];
 
   const updateMutation = useMutation({
@@ -182,9 +190,9 @@ export default function CoordinatorDashboardPage() {
   };
 
   const stats = {
-    total: students.length,
-    registered: students.filter((s: Student) => s.status === "registered").length,
-    admitted: students.filter((s: Student) => s.status === "admitted").length,
+    total: counts?.total ?? 0,
+    registered: counts?.registered ?? 0,
+    admitted: counts?.admitted ?? 0,
     rejected: students.filter((s: Student) => s.status === "rejected").length,
   };
 

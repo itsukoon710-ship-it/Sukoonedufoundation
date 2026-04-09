@@ -56,6 +56,17 @@ export default function StudentsPage() {
     enabled: false,
   });
 
+  const { data: counts } = useQuery<{ total: number; registered: number; selected: number; admitted: number }>({
+    queryKey: ["/api/students/counts"],
+    queryFn: async () => {
+      const res = await fetch("/api/students/counts", {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch student counts");
+      return res.json();
+    },
+  });
+
   const students = data?.students ?? [];
   const totalStudents = data?.total ?? 0;
   const totalPages = Math.ceil(totalStudents / limit);
@@ -159,10 +170,10 @@ export default function StudentsPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total", count: totalStudents, filter: "all" },
-          { label: "Registered", count: students.filter(s => s.status === "registered").length, filter: "registered" },
-          { label: "Selected", count: students.filter(s => s.status === "selected_for_interview").length, filter: "selected_for_interview" },
-          { label: "Admitted", count: students.filter(s => s.status === "admitted").length, filter: "admitted" },
+          { label: "Total", count: counts?.total ?? 0, filter: "all" },
+          { label: "Registered", count: counts?.registered ?? 0, filter: "registered" },
+          { label: "Selected", count: counts?.selected ?? 0, filter: "selected_for_interview" },
+          { label: "Admitted", count: counts?.admitted ?? 0, filter: "admitted" },
         ].map(stat => (
           <button
             key={stat.filter}

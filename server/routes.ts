@@ -547,6 +547,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Get student counts for stats (no pagination)
+  app.get("/api/students/counts", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const filters: { coordinatorId?: string; centerId?: string; admissionYear?: number } = {};
+      
+      if (req.query.admissionYear) filters.admissionYear = parseInt(req.query.admissionYear as string);
+      if (req.query.centerId) filters.centerId = req.query.centerId as string;
+      
+      // Coordinators can only see their own students
+      if (user.role === "coordinator") {
+        filters.coordinatorId = user.id;
+      }
+      
+      const counts = await storage.getStudentCounts(filters);
+      res.json(counts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/students/:id", requireAuth, async (req, res) => {
     try {
       const id = getStringParam(req.params.id);

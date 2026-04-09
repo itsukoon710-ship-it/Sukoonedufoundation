@@ -59,6 +59,7 @@ export interface IStorage {
 
   // Students
   getStudents(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number; status?: string }, pagination?: { limit: number; offset: number }): Promise<{ students: Student[]; total: number }>;
+  getStudentCounts(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number }): Promise<{ total: number; registered: number; selected: number; admitted: number }>;
   getStudentById(id: string): Promise<Student | undefined>;
   getStudentByApplicationId(applicationId: string): Promise<Student | undefined>;
   createStudent(data: InsertStudent & { applicationId: string }): Promise<Student>;
@@ -567,6 +568,27 @@ export class DatabaseStorage implements IStorage {
     }
     
     return { students: studentList, total };
+  }
+
+  async getStudentCounts(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number }): Promise<{ total: number; registered: number; selected: number; admitted: number }> {
+    const conditions = [];
+    if (filters?.coordinatorId) conditions.push(eq(students.coordinatorId, filters.coordinatorId));
+    if (filters?.centerId) conditions.push(eq(students.centerId, filters.centerId));
+    if (filters?.admissionYear) conditions.push(eq(students.admissionYear, filters.admissionYear));
+    
+    let allStudents: Student[];
+    if (conditions.length > 0) {
+      allStudents = await db.select().from(students).where(and(...conditions));
+    } else {
+      allStudents = await db.select().from(students);
+    }
+    
+    const total = allStudents.length;
+    const registered = allStudents.filter(s => s.status === "registered").length;
+    const selected = allStudents.filter(s => s.status === "selected_for_interview").length;
+    const admitted = allStudents.filter(s => s.status === "admitted").length;
+    
+    return { total, registered, selected, admitted };
   }
 
   async getStudentById(id: string): Promise<Student | undefined> {
