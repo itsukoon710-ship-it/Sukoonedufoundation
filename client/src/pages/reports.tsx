@@ -21,7 +21,7 @@ export default function ReportsPage() {
   const { data: studentsData, isLoading } = useQuery<{ students: Student[]; total: number }>({
     queryKey: ["/api/students"],
   });
-  const students = studentsData?.students ?? [];
+  const students = Array.isArray(studentsData?.students) ? studentsData.students : [];
   
   // Use export API for CSV to get all students, not paginated
   const { data: allStudentsData, refetch: refetchAllStudents } = useQuery<{ students: Student[]; total: number }>({
@@ -43,7 +43,7 @@ export default function ReportsPage() {
   const filteredStudents = students.filter(s => s.admissionYear === parseInt(year));
 
   // By center
-  const centerStats = centers.map(c => ({
+  const centerStats = (Array.isArray(centers) ? centers : []).map(c => ({
     name: c.name.split(" ")[0],
     fullName: c.name,
     total: filteredStudents.filter(s => s.centerId === c.id).length,
@@ -51,9 +51,9 @@ export default function ReportsPage() {
   }));
 
   // By coordinator
-  const coordStats = coordinators.map(c => ({
+  const coordStats = (Array.isArray(coordinators) ? coordinators : []).map(c => ({
     name: c.name,
-    center: centers.find((ct: any) => ct.id === c.centerId)?.name || "—",
+    center: (Array.isArray(centers) ? centers : []).find((ct: any) => ct.id === c.centerId)?.name || "—",
     total: filteredStudents.filter(s => s.coordinatorId === c.id).length,
     admitted: filteredStudents.filter(s => s.coordinatorId === c.id && s.status === "admitted").length,
   }));
@@ -69,10 +69,10 @@ export default function ReportsPage() {
   ].filter(d => d.value > 0);
 
   const examStats = {
-    total: examResults.length,
-    selected: examResults.filter((r: any) => r.selectedForInterview).length,
-    avgMarks: examResults.length > 0
-      ? Math.round(examResults.reduce((sum: number, r: any) => sum + r.marks, 0) / examResults.length)
+    total: (Array.isArray(examResults) ? examResults : []).length,
+    selected: (Array.isArray(examResults) ? examResults : []).filter((r: any) => r.selectedForInterview).length,
+    avgMarks: (Array.isArray(examResults) ? examResults : []).length > 0
+      ? Math.round((Array.isArray(examResults) ? examResults : []).reduce((sum: number, r: any) => sum + r.marks, 0) / (Array.isArray(examResults) ? examResults : []).length)
       : 0,
   };
 
@@ -111,17 +111,17 @@ export default function ReportsPage() {
 
   const exportCSV = async () => {
     await refetchAllStudents();
-    const exportStudents = allStudentsData?.students ?? [];
+    const exportStudents = Array.isArray(allStudentsData?.students) ? allStudentsData.students : [];
     const filteredForExport = exportStudents.filter(s => s.admissionYear === parseInt(year));
     
     const headers = ["App ID", "Name", "Father", "Mother", "Gender", "DOB", "Class", "Mobile", "Center", "Status", "Exam Marks", "Interview Decision"];
     const rows = filteredForExport.map(s => {
-      const er = examResults.find((r: any) => r.student?.id === s.id);
-      const ir = interviewResults.find((r: any) => r.studentId === s.id);
+      const er = (Array.isArray(examResults) ? examResults : []).find((r: any) => r.student?.id === s.id);
+      const ir = (Array.isArray(interviewResults) ? interviewResults : []).find((r: any) => r.studentId === s.id);
       return [
         s.applicationId, s.name, s.fatherName, s.motherName, s.gender, s.dateOfBirth,
         s.classApplying, s.phone,
-        centers.find((c: any) => c.id === s.centerId)?.name || "",
+        (Array.isArray(centers) ? centers : []).find((c: any) => c.id === s.centerId)?.name || "",
         s.status, er?.marks || "", ir?.decision || ""
       ];
     });
