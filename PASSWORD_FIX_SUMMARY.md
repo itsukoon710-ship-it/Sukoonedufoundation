@@ -10,7 +10,7 @@ When creating or updating users from the admin panel, passwords were not being p
 ### Problem 2: Missing `marksEntryPermission` Column
 Admin login was failing with error "marks entry permission does not exist" because the `marks_entry_permission` column was missing from the database.
 
-**Root Cause:** The database was created before the `marksEntryPermission` field was added to the schema, and the migration wasn't run to add the new column.
+**Root Cause:** The database was created before the `marksEntryPermission` field was added to the schema, and the migration wasn't run to add the new column.  
 
 ## Solution
 

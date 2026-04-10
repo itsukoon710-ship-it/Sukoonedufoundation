@@ -415,6 +415,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // COORDINATORS
+  app.get("/api/coordinators", requireAuth, async (req, res) => {
+    try {
+      const coordinators = await storage.getCoordinators();
+      res.json(coordinators);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // USERS
   app.get("/api/users", requireAdmin, async (req, res) => {
     try {
