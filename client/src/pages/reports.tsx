@@ -18,14 +18,22 @@ const COLORS = ["hsl(221,72%,43%)", "hsl(142,72%,29%)", "hsl(37,91%,55%)", "hsl(
 export default function ReportsPage() {
   const [year, setYear] = useState("2026");
 
+  // Use export API to get all students (no pagination limit) for the selected year
   const { data: studentsData, isLoading } = useQuery<{ students: Student[]; total: number }>({
-    queryKey: ["/api/students"],
+    queryKey: ["/api/students/export", year],
+    queryFn: async () => {
+      const res = await fetch(`/api/students/export?admissionYear=${year}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch students");
+      return res.json();
+    },
   });
   const students = Array.isArray(studentsData?.students) ? studentsData.students : [];
   
   // Use export API for CSV to get all students, not paginated
   const { data: allStudentsData, refetch: refetchAllStudents } = useQuery<{ students: Student[]; total: number }>({
-    queryKey: ["/api/students/export"],
+    queryKey: ["/api/students/export", "csv", year],
     queryFn: async () => {
       const res = await fetch(`/api/students/export?admissionYear=${year}`, {
         credentials: "include",
@@ -35,10 +43,38 @@ export default function ReportsPage() {
     },
     enabled: false,
   });
-  const { data: coordinators = [] } = useQuery<any[]>({ queryKey: ["/api/coordinators"] });
-  const { data: centers = [] } = useQuery<any[]>({ queryKey: ["/api/centers"] });
-  const { data: examResults = [] } = useQuery<any[]>({ queryKey: ["/api/exam-results"] });
-  const { data: interviewResults = [] } = useQuery<any[]>({ queryKey: ["/api/interview-results"] });
+  const { data: coordinators = [] } = useQuery<any[]>({ 
+    queryKey: ["/api/coordinators"],
+    queryFn: async () => {
+      const res = await fetch(`/api/coordinators`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+  const { data: centers = [] } = useQuery<any[]>({ 
+    queryKey: ["/api/centers"],
+    queryFn: async () => {
+      const res = await fetch(`/api/centers`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+  const { data: examResults = [] } = useQuery<any[]>({ 
+    queryKey: ["/api/exam-results", year],
+    queryFn: async () => {
+      const res = await fetch(`/api/exam-results`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+  const { data: interviewResults = [] } = useQuery<any[]>({ 
+    queryKey: ["/api/interview-results", year],
+    queryFn: async () => {
+      const res = await fetch(`/api/interview-results`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
 
   const filteredStudents = students.filter(s => s.admissionYear === parseInt(year));
 
