@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Eye, CreditCard, Users, Download } from "lucide-react";
+import { Plus, Search, Eye, CreditCard, Users, Download, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import type { Student } from "@shared/schema";
 import { useLocation } from "wouter";
@@ -28,6 +28,7 @@ export default function StudentsPage() {
   const { data: user } = useAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [duplicateSearch, setDuplicateSearch] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
   const [, navigate] = useLocation();
@@ -67,20 +68,78 @@ export default function StudentsPage() {
     },
   });
 
+  const deleteStudentMutation = useMutation({
+    mutationFn: async (studentId: number) => {
+      const res = await fetch(`/api/students/${studentId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete student');
+    },
+    onMutate: async (studentId) => {
+      await qc.cancelQueries({ queryKey: ["/api/students"] });
+      await qc.cancelQueries({ queryKey: ["/api/students/export"] });
+
+      const previousStudents = qc.getQueryData<{ students: Student[]; total: number }>(["/api/students"]);
+      const previousAll = qc.getQueryData<{ students: Student[]; total: number }>(["/api/students/export"]);
+
+      qc.setQueryData<{ students: Student[]; total: number }>(["/api/students"], (old) =>
+        old ? { ...old, students: old.students.filter(s => s.id !== studentId) } : old
+      );
+      qc.setQueryData<{ students: Student[]; total: number }>(["/api/students/export"], (old) =>
+        old ? { ...old, students: old.students.filter(s => s.id !== studentId) } : old
+      );
+
+      return { previousStudents, previousAll };
+    },
+    onError: (err, studentId, context) => {
+      if (context?.previousStudents) qc.setQueryData(["/api/students"], context.previousStudents);
+      if (context?.previousAll) qc.setQueryData(["/api/students/export"], context.previousAll);
+      alert(`Error deleting student: ${err.message}`);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["/api/students"] });
+      qc.invalidateQueries({ queryKey: ["/api/students/export"] });
+      qc.invalidateQueries({ queryKey: ["/api/students/counts"] });
+    },
+  });
+
   const students = data?.students ?? [];
   const totalStudents = data?.total ?? 0;
   const totalPages = Math.ceil(totalStudents / limit);
 
-  const filteredStudents = students.filter(s => {
-    const matchSearch = !search ||
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.applicationId.toLowerCase().includes(search.toLowerCase()) ||
-        ((s.mobile || s.phone) ?? '').toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "all" || s.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+   const filteredStudents = students.filter(s => {
+     const matchSearch = !search ||
+         s.name.toLowerCase().includes(search.toLowerCase()) ||
+         s.applicationId.toLowerCase().includes(search.toLowerCase()) ||
+         ((s.mobile || s.phone) ?? '').toLowerCase().includes(search.toLowerCase());
+     const matchStatus = statusFilter === "all" || s.status === statusFilter;
+     return matchSearch && matchStatus;
+   });
 
-  const exportToCSV = async () => {
+   const handleDelete = (studentId: number) => {
+     if (!window.confirm("Are you sure you want to delete this student? This action cannot be undone.")) {
+       return;
+     }
+     deleteStudentMutation.mutate(studentId);
+   };
+
+   const duplicateStudents = duplicateSearch
+     ? filteredStudents.filter(student => {
+         const phoneCount = filteredStudents.filter(s =>
+           (s.phone && student.phone && s.phone === student.phone) ||
+           (s.mobile && student.mobile && s.mobile === student.mobile) ||
+           (s.phone && student.mobile && s.phone === student.mobile) ||
+           (s.mobile && student.phone && s.mobile === student.phone)
+         ).length;
+         const aadhaarCount = filteredStudents.filter(s =>
+           s.aadhaarNumber && student.aadhaarNumber && s.aadhaarNumber === student.aadhaarNumber
+         ).length;
+         return phoneCount > 1 || aadhaarCount > 1;
+       })
+     : [];
+
+   const exportToCSV = async () => {
     await refetchAll();
     const exportData = allData?.students ?? [];
     
@@ -202,8 +261,18 @@ export default function StudentsPage() {
             className="pl-9"
             data-testid="input-search-students"
           />
-        </div>
-          <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+         </div>
+         <div className="relative flex-1 max-w-sm">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+           <Input
+             placeholder="Duplicate check: phone or Aadhaar..."
+             value={duplicateSearch}
+             onChange={e => setDuplicateSearch(e.target.value)}
+             className="pl-9"
+             data-testid="input-duplicate-search"
+           />
+         </div>
+           <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-48" data-testid="select-status-filter">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -214,10 +283,21 @@ export default function StudentsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+       </div>
 
-      {/* Table */}
-      <Card>
+       {/* Duplicate Alert */}
+       {duplicateSearch && (
+         <Card className="border-orange-200 bg-orange-50/50">
+           <CardContent className="pt-4">
+             <p className="text-sm text-orange-800">
+               Found {duplicateStudents.length} student(s) with duplicate Phone Number or Aadhaar Number.
+             </p>
+           </CardContent>
+         </Card>
+       )}
+
+       {/* Table */}
+       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />
@@ -295,6 +375,16 @@ export default function StudentsPage() {
                               <Link href={`/admit-cards?id=${student.id}`}>
                                 <CreditCard className="w-4 h-4" />
                               </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(student.id)}
+                              disabled={deleteStudentMutation.isPending}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              data-testid={`button-delete-student-${student.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
