@@ -124,20 +124,23 @@ export default function StudentsPage() {
      deleteStudentMutation.mutate(studentId);
    };
 
-   const duplicateStudents = duplicateSearch
-     ? filteredStudents.filter(student => {
-         const phoneCount = filteredStudents.filter(s =>
-           (s.phone && student.phone && s.phone === student.phone) ||
-           (s.mobile && student.mobile && s.mobile === student.mobile) ||
-           (s.phone && student.mobile && s.phone === student.mobile) ||
-           (s.mobile && student.phone && s.mobile === student.phone)
-         ).length;
-         const aadhaarCount = filteredStudents.filter(s =>
-           s.aadhaarNumber && student.aadhaarNumber && s.aadhaarNumber === student.aadhaarNumber
-         ).length;
-         return phoneCount > 1 || aadhaarCount > 1;
-       })
-     : [];
+   const studentWithDuplicateFlags = useMemo(() => {
+     if (!duplicateSearch) return filteredStudents.map(s => ({ ...s, _isDuplicate: false }));
+     return filteredStudents.map(student => {
+       const phoneDup = filteredStudents.some(s =>
+         s.id !== student.id &&
+         ((s.phone && student.phone && s.phone === student.phone) ||
+          (s.mobile && student.mobile && s.mobile === student.mobile) ||
+          (s.phone && student.mobile && s.phone === student.mobile) ||
+          (s.mobile && student.phone && s.mobile === student.phone))
+       );
+       const aadhaarDup = filteredStudents.some(s =>
+         s.id !== student.id &&
+         s.aadhaarNumber && student.aadhaarNumber && s.aadhaarNumber === student.aadhaarNumber
+       );
+       return { ...student, _isDuplicate: phoneDup || aadhaarDup };
+     });
+   }, [duplicateSearch, filteredStudents]);
 
    const exportToCSV = async () => {
     await refetchAll();
@@ -341,29 +344,49 @@ export default function StudentsPage() {
                     const status = statusConfig[student.status] || { label: student.status, variant: "secondary" as const };
                     return (
                       <TableRow key={student.id} data-testid={`row-student-${student.id}`}>
-                        <TableCell className="font-mono text-xs text-primary font-medium">
-                          {student.applicationId}
-                        </TableCell>
+                     <TableCell className={`font-mono text-xs text-primary font-medium ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>
+                       {student.applicationId}
+                     </TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium text-sm">{student.name}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell text-sm">{student.age}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-sm">{student.gender}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm">{student.fatherName}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm">{student.phone}</TableCell>
-                        <TableCell className="hidden lg:table-cell text-sm">{student.state}</TableCell>
-                        <TableCell className="hidden lg:table-cell text-sm">{student.district}</TableCell>
-                        <TableCell className="hidden xl:table-cell text-sm">{student.classApplying}</TableCell>
-                        <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
-                          {student.examCenter || "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={status.variant} className="text-xs whitespace-nowrap">
-                            {status.label}
-                          </Badge>
-                        </TableCell>
+                        <TableCell className={`hidden sm:table-cell text-sm ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>{student.age}</TableCell>
+                     <TableCell className={`hidden sm:table-cell text-sm ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>{student.gender}</TableCell>
+                         <TableCell className={`hidden md:table-cell text-sm ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>{student.fatherName}</TableCell>
+                         <TableCell className={`hidden md:table-cell text-sm ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>{student.phone}</TableCell>
+                         <TableCell className={`hidden lg:table-cell text-sm ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>{student.state}</TableCell>
+                         <TableCell className={`hidden lg:table-cell text-sm ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>{student.district}</TableCell>
+                         <TableCell className={`hidden xl:table-cell text-sm ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>{student.classApplying}</TableCell>
+                         <TableCell className={`hidden xl:table-cell text-sm text-muted-foreground ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-50 text-orange-800' : ''
+                     }`}>
+                           {student.examCenter || "—"}
+                         </TableCell>
+                         <TableCell>
+                           <Badge variant={status.variant} className={`text-xs whitespace-nowrap ${
+                       studentWithDuplicateFlags.find(s => s.id === student.id)?._isDuplicate ? 'bg-orange-100 text-orange-800' : ''
+                     }`}>
+                             {status.label}
+                           </Badge>
+                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button
