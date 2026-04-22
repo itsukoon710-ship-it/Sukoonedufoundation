@@ -293,7 +293,7 @@ export default function StudentsPage() {
          <Card className="border-orange-200 bg-orange-50/50">
            <CardContent className="pt-4">
              <p className="text-sm text-orange-800">
-               Found {duplicateStudents.length} student(s) with duplicate Phone Number or Aadhaar Number.
+               Found {studentWithDuplicateFlags.filter(s => s._isDuplicate).length} student(s) with duplicate Phone Number or Aadhaar Number.
              </p>
            </CardContent>
          </Card>
