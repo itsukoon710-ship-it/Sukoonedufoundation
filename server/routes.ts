@@ -316,9 +316,51 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
-  });
+    });
 
-  // AUTH ROUTES
+    // PUBLIC GET STUDENT BY AADHAAR NUMBER (for admit card download)
+    app.post("/api/public/find-by-aadhaar", publicRegistrationLimiter, async (req, res) => {
+      try {
+        const { aadhaarNumber } = req.body;
+
+        if (!aadhaarNumber) {
+          return res.status(400).json({ message: "Aadhaar number is required" });
+        }
+
+        // Validate Aadhaar format (12 digits)
+        if (!/^\d{12}$/.test(aadhaarNumber)) {
+          return res.status(400).json({ message: "Invalid Aadhaar number format" });
+        }
+
+        const student = await storage.getStudentByAadhaarNumber(aadhaarNumber);
+        if (!student) {
+          return res.status(404).json({ message: "No student found with this Aadhaar number" });
+        }
+
+        // Get subjects for the student's admission year
+        const subjects = await storage.getSubjects(student.admissionYear);
+
+        // Return student data needed for admit card including subjects
+        res.json({
+          id: student.id,
+          applicationId: student.applicationId,
+          name: student.name,
+          fatherName: student.fatherName,
+          motherName: student.motherName,
+          dateOfBirth: student.dateOfBirth,
+          gender: student.gender,
+          classApplying: student.classApplying,
+          examCenter: student.examCenter,
+          photoUrl: student.photoUrl,
+          admissionYear: student.admissionYear,
+          subjects,
+        });
+      } catch (err: any) {
+        res.status(500).json({ message: err.message });
+      }
+    });
+
+   // AUTH ROUTES
   app.post("/api/auth/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);

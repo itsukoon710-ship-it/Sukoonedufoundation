@@ -58,14 +58,15 @@ export interface IStorage {
   createStudentSubjectMarks(data: InsertStudentSubjectMarks): Promise<StudentSubjectMarks>;
   deleteStudentSubjectMarks(studentId: string): Promise<void>;
 
-  // Students
-  getStudents(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number; status?: string }, pagination?: { limit: number; offset: number }): Promise<{ students: Student[]; total: number }>;
-  getStudentCounts(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number }): Promise<{ total: number; registered: number; selected: number; admitted: number }>;
-  getStudentById(id: string): Promise<Student | undefined>;
-  getStudentByApplicationId(applicationId: string): Promise<Student | undefined>;
-  createStudent(data: InsertStudent & { applicationId: string }): Promise<Student>;
-  updateStudent(id: string, data: Partial<Student>): Promise<Student>;
-  deleteStudent(id: string): Promise<void>;
+   // Students
+   getStudents(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number; status?: string }, pagination?: { limit: number; offset: number }): Promise<{ students: Student[]; total: number }>;
+   getStudentCounts(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number }): Promise<{ total: number; registered: number; selected: number; admitted: number }>;
+   getStudentById(id: string): Promise<Student | undefined>;
+   getStudentByApplicationId(applicationId: string): Promise<Student | undefined>;
+   getStudentByAadhaarNumber(aadhaarNumber: string): Promise<Student | undefined>;
+   createStudent(data: InsertStudent & { applicationId: string }): Promise<Student>;
+   updateStudent(id: string, data: Partial<Student>): Promise<Student>;
+   deleteStudent(id: string): Promise<void>;
 
   // Exam Results (summary)
   getExamResults(admissionYear?: number): Promise<(ExamResult & { student: Student })[]>;
@@ -212,8 +213,20 @@ export class DatabaseStorage implements IStorage {
       values.push(data.isActive);
     }
     if (data.selectionMode !== undefined) {
-      setParts.push(`selection_mode = $${paramIndex++}`);
-      values.push(data.selectionMode);
+      // Check if the enum value exists before setting
+      try {
+        const enumCheck = await db.execute(sql`
+          SELECT 1 FROM pg_enum
+          WHERE enumtypid = 'selection_mode'::regtype
+          AND enumlabel = ${data.selectionMode}
+        `);
+        if (enumCheck.rows.length > 0) {
+          setParts.push(`selection_mode = $${paramIndex++}`);
+          values.push(data.selectionMode);
+        }
+      } catch (error) {
+        // Enum value doesn't exist, skip
+      }
     }
     if (data.minSubjectsToPass !== undefined) {
       setParts.push(`min_subjects_to_pass = $${paramIndex++}`);
@@ -231,7 +244,7 @@ export class DatabaseStorage implements IStorage {
       setParts.push(`public_registration_enabled = $${paramIndex++}`);
       values.push(data.publicRegistrationEnabled);
     }
-    if (data.numberOfStudentsToSelect !== undefined) {
+    if (data.numberOfStudentsToSelect !== undefined && data.numberOfStudentsToSelect !== null && !isNaN(data.numberOfStudentsToSelect)) {
       // Check if column exists before setting
       try {
         const columnCheck = await db.execute(sql`
@@ -730,6 +743,11 @@ export class DatabaseStorage implements IStorage {
 
   async getStudentByApplicationId(applicationId: string): Promise<Student | undefined> {
     const result = await db.select().from(students).where(eq(students.applicationId, applicationId)).limit(1);
+    return result[0];
+  }
+
+  async getStudentByAadhaarNumber(aadhaarNumber: string): Promise<Student | undefined> {
+    const result = await db.select().from(students).where(eq(students.aadhaarNumber, aadhaarNumber)).limit(1);
     return result[0];
   }
 

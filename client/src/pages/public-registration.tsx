@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { User, Phone, MapPin, GraduationCap, CheckCircle, Search, Bell, Calendar, Download, Printer } from "lucide-react";
+import { User, Phone, MapPin, GraduationCap, CheckCircle, Search, Bell, Calendar, Download, Printer, QrCode } from "lucide-react";
 import { useState, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdmitCard } from "@/components/admit-card";
 
 const formSchema = z.object({
   // Student Details
@@ -65,6 +66,13 @@ export default function PublicRegistrationPage() {
   const [studentData, setStudentData] = useState<any>(null);
   const [rollNumber, setRollNumber] = useState("");
   const [resultChecked, setResultChecked] = useState(false);
+  // Admit card states
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [admitCardLoading, setAdmitCardLoading] = useState(false);
+  const [admitCardFound, setAdmitCardFound] = useState(false);
+  const [admitCardStudent, setAdmitCardStudent] = useState<any>(null);
+  const [admitCardError, setAdmitCardError] = useState("");
+  const admitCardPrintRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -117,26 +125,52 @@ export default function PublicRegistrationPage() {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: (data: FormData) => apiRequest("POST", "/api/public/register", data),
-    onSuccess: (data: any) => {
-      setApplicationId(data.applicationId);
-      setStudentData(data);
-      setSubmitted(true);
-      toast({ 
-        title: "Application Submitted Successfully!", 
-        description: `Your Application ID is: ${data.applicationId}`,
-        duration: 10000,
-      });
-    },
-    onError: (err: any) => {
-      toast({ 
-        title: "Submission Failed", 
-        description: err.message || "Failed to submit application. Please try again.", 
-        variant: "destructive" 
-      });
-    },
-  });
+   const mutation = useMutation({
+     mutationFn: (data: FormData) => apiRequest("POST", "/api/public/register", data),
+     onSuccess: (data: any) => {
+       setApplicationId(data.applicationId);
+       setStudentData(data);
+       setSubmitted(true);
+       toast({ 
+         title: "Application Submitted Successfully!", 
+         description: `Your Application ID is: ${data.applicationId}`,
+         duration: 10000,
+       });
+     },
+     onError: (err: any) => {
+       toast({ 
+         title: "Submission Failed", 
+         description: err.message || "Failed to submit application. Please try again.", 
+         variant: "destructive" 
+       });
+     },
+   });
+
+   // Fetch admit card by Aadhaar
+   const admitCardMutation = useMutation({
+     mutationFn: (aadhaar: string) => apiRequest("POST", "/api/public/find-by-aadhaar", { aadhaarNumber: aadhaar }),
+     onSuccess: (data: any) => {
+       setAdmitCardStudent(data);
+       setAdmitCardFound(true);
+       setAdmitCardError("");
+       toast({ 
+         title: "Admit Card Found", 
+         description: "Your admit card has been retrieved successfully.",
+         duration: 5000,
+       });
+     },
+     onError: (err: any) => {
+       setAdmitCardStudent(null);
+       setAdmitCardFound(false);
+       setAdmitCardError(err.message || "No student found with this Aadhaar number");
+       toast({ 
+         title: "Not Found", 
+         description: err.message || "Could not find admit card for this Aadhaar number. Please check and try again.", 
+         variant: "destructive" 
+       });
+     },
+   });
+
 
   const calculateAgeFromDOB = (dob: string): number | null => {
     if (!dob) return null;
@@ -187,6 +221,76 @@ export default function PublicRegistrationPage() {
       return;
     }
     checkResultMutation.mutate(rollNumber.trim());
+  };
+
+  const handleFetchAdmitCard = () => {
+    if (!aadhaarNumber.trim()) {
+      toast({ 
+        title: "Aadhaar Number Required", 
+        description: "Please enter your Aadhaar number to download admit card.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    if (aadhaarNumber.length !== 12) {
+      toast({ 
+        title: "Invalid Aadhaar", 
+        description: "Aadhaar number must be 12 digits.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    setAdmitCardFound(false);
+    setAdmitCardError("");
+    admitCardMutation.mutate(aadhaarNumber.trim());
+  };
+
+  const handlePrintAdmitCard = () => {
+    const printContent = admitCardPrintRef.current;
+    if (!printContent) return;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Admit Card — ${admitCardStudent?.name} — ${admitCardStudent?.applicationId}</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: white;
+            width: 100%;
+            height: 100%;
+          }
+          body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+          }
+          @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <div id="admit-card-container">
+          ${printContent.outerHTML}
+        </div>
+      </body>
+      </html>
+    `);
+    w.document.close();
+    setTimeout(() => w.print(), 500);
+  };
+
+  const handleDownloadAdmitCard = () => {
+    handlePrintAdmitCard();
   };
 
   if (submitted) {
@@ -408,15 +512,22 @@ export default function PublicRegistrationPage() {
               <p className="text-gray-500 text-sm md:text-base">Registration is currently closed</p>
             </div>
 
-            {/* Tabs for Registration and Result Checking */}
+            {/* Tabs for Registration and Admit Card Checking */}
             <Tabs defaultValue="registration" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-white shadow-md">
+              <TabsList className="grid w-full grid-cols-3 mb-6 bg-white shadow-md">
                 <TabsTrigger 
                   value="registration" 
                   className="text-sm md:text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
                 >
                   <User className="w-4 h-4 mr-2" />
                   Registration
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="admit-card" 
+                  className="text-sm md:text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Admit Card
                 </TabsTrigger>
                 <TabsTrigger 
                   value="results" 
@@ -556,8 +667,277 @@ export default function PublicRegistrationPage() {
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
+            </TabsContent>
+            {/* Admit Card Download Tab */}
+            <TabsContent value="admit-card">
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="w-5 h-5" />
+                    Download Admit Card
+                  </CardTitle>
+                  <CardDescription className="text-blue-100">
+                    Enter your Aadhaar number to retrieve and download your admit card
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="aadhaarInputEnabled2" className="block text-sm font-medium text-gray-700 mb-2">
+                          Aadhaar Number *
+                        </label>
+                        <Input
+                          id="aadhaarInputEnabled2"
+                          type="text"
+                          placeholder="Enter your 12-digit Aadhaar number"
+                          value={aadhaarNumber}
+                          onChange={(e) => setAadhaarNumber(e.target.value)}
+                          className="h-12 text-lg"
+                          maxLength={12}
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Enter the Aadhaar number you provided during registration
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={handleFetchAdmitCard}
+                        disabled={admitCardMutation.isPending}
+                        className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+                      >
+                        {admitCardMutation.isPending ? "Fetching..." : "Download Admit Card"}
+                      </Button>
+                    </div>
+
+                    {admitCardFound && admitCardStudent && (
+                      <div className="space-y-4">
+                        <Card className="border-2 border-blue-200 bg-blue-50">
+                          <CardContent className="pt-6">
+                            <div className="text-center mb-4">
+                              <h3 className="text-xl font-bold text-blue-900">Admit Card Found!</h3>
+                              <p className="text-gray-600">Application ID: {admitCardStudent.applicationId}</p>
+                            </div>
+                            <div ref={admitCardPrintRef} className="flex justify-center">
+                              <AdmitCard student={admitCardStudent} subjects={admitCardStudent.subjects || []} />
+                            </div>
+                            <div className="flex justify-center gap-3 mt-4">
+                              <Button
+                                onClick={handlePrintAdmitCard}
+                                variant="outline"
+                                className="gap-2"
+                              >
+                                <Printer className="w-4 h-4" />
+                                Print
+                              </Button>
+                              <Button
+                                onClick={handleDownloadAdmitCard}
+                                className="gap-2 bg-green-600 hover:bg-green-700"
+                              >
+                                <Download className="w-4 h-4" />
+                                Download PDF
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+
+                    {admitCardError && (
+                      <Card className="border-2 border-red-200 bg-red-50">
+                        <CardContent className="pt-6 text-center">
+                          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Search className="w-8 h-8 text-red-600" />
+                          </div>
+                          <h3 className="text-xl font-semibold text-red-700 mb-2">Not Found</h3>
+                          <p className="text-gray-600">{admitCardError}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+               {/* Admit Card Download Tab */}
+               <TabsContent value="admit-card-disabled">
+                 <Card className="shadow-lg">
+                   <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
+                     <CardTitle className="flex items-center gap-2">
+                       <Download className="w-5 h-5" />
+                       Download Admit Card
+                     </CardTitle>
+                     <CardDescription className="text-blue-100">
+                       Enter your Aadhaar number to retrieve and download your admit card
+                     </CardDescription>
+                   </CardHeader>
+                   <CardContent className="pt-6">
+                     <div className="space-y-6">
+                       <div className="space-y-4">
+                         <div>
+                           <label htmlFor="aadhaarInputDisabled" className="block text-sm font-medium text-gray-700 mb-2">
+                             Aadhaar Number *
+                           </label>
+                           <Input
+                             id="aadhaarInputDisabled"
+                             type="text"
+                             placeholder="Enter your 12-digit Aadhaar number"
+                             value={aadhaarNumber}
+                             onChange={(e) => setAadhaarNumber(e.target.value)}
+                             className="h-12 text-lg"
+                             maxLength={12}
+                           />
+                           <p className="text-sm text-gray-500 mt-1">
+                             Enter the Aadhaar number you provided during registration
+                           </p>
+                         </div>
+                         <Button 
+                           onClick={handleFetchAdmitCard}
+                           disabled={admitCardMutation.isPending}
+                           className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+                         >
+                           {admitCardMutation.isPending ? "Fetching..." : "Download Admit Card"}
+                         </Button>
+                       </div>
+
+                       {admitCardFound && admitCardStudent && (
+                         <div className="space-y-4">
+                           <Card className="border-2 border-blue-200 bg-blue-50">
+                             <CardContent className="pt-6">
+                               <div className="text-center mb-4">
+                                 <h3 className="text-xl font-bold text-blue-900">Admit Card Found!</h3>
+                                 <p className="text-gray-600">Application ID: {admitCardStudent.applicationId}</p>
+                               </div>
+                               <div ref={admitCardPrintRef} className="flex justify-center">
+                                 <AdmitCard student={admitCardStudent} subjects={admitCardStudent.subjects || []} />
+                               </div>
+                               <div className="flex justify-center gap-3 mt-4">
+                                 <Button
+                                   onClick={handlePrintAdmitCard}
+                                   variant="outline"
+                                   className="gap-2"
+                                 >
+                                   <Printer className="w-4 h-4" />
+                                   Print
+                                 </Button>
+                                 <Button
+                                   onClick={handleDownloadAdmitCard}
+                                   className="gap-2 bg-green-600 hover:bg-green-700"
+                                 >
+                                   <Download className="w-4 h-4" />
+                                   Download PDF
+                                 </Button>
+                               </div>
+                             </CardContent>
+                           </Card>
+                         </div>
+                       )}
+
+                       {admitCardError && (
+                         <Card className="border-2 border-red-200 bg-red-50">
+                           <CardContent className="pt-6 text-center">
+                             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                               <Search className="w-8 h-8 text-red-600" />
+                             </div>
+                             <h3 className="text-xl font-semibold text-red-700 mb-2">Not Found</h3>
+                             <p className="text-gray-600">{admitCardError}</p>
+                           </CardContent>
+                         </Card>
+                       )}
+                     </div>
+                   </CardContent>
+                 </Card>
+               </TabsContent>
+
+             {/* Admit Card Download Tab */}
+             <TabsContent value="admit-card">
+               <Card className="shadow-lg">
+                 <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
+                   <CardTitle className="flex items-center gap-2">
+                     <Download className="w-5 h-5" />
+                     Download Admit Card
+                   </CardTitle>
+                   <CardDescription className="text-blue-100">
+                     Enter your Aadhaar number to retrieve and download your admit card
+                   </CardDescription>
+                 </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="aadhaarInputEnabled" className="block text-sm font-medium text-gray-700 mb-2">
+                            Aadhaar Number *
+                          </label>
+                          <Input
+                            id="aadhaarInputEnabled"
+                            type="text"
+                            placeholder="Enter your 12-digit Aadhaar number"
+                            value={aadhaarNumber}
+                            onChange={(e) => setAadhaarNumber(e.target.value)}
+                            className="h-12 text-lg"
+                            maxLength={12}
+                          />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Enter the Aadhaar number you provided during registration
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={handleFetchAdmitCard}
+                          disabled={admitCardMutation.isPending}
+                          className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+                        >
+                          {admitCardMutation.isPending ? "Fetching..." : "Download Admit Card"}
+                        </Button>
+                      </div>
+
+                      {admitCardFound && admitCardStudent && (
+                        <div className="space-y-4">
+                          <Card className="border-2 border-blue-200 bg-blue-50">
+                            <CardContent className="pt-6">
+                              <div className="text-center mb-4">
+                                <h3 className="text-xl font-bold text-blue-900">Admit Card Found!</h3>
+                                <p className="text-gray-600">Application ID: {admitCardStudent.applicationId}</p>
+                              </div>
+                              <div ref={admitCardPrintRef} className="flex justify-center">
+                                <AdmitCard student={admitCardStudent} subjects={admitCardStudent.subjects || []} />
+                              </div>
+                              <div className="flex justify-center gap-3 mt-4">
+                                <Button
+                                  onClick={handlePrintAdmitCard}
+                                  variant="outline"
+                                  className="gap-2"
+                                >
+                                  <Printer className="w-4 h-4" />
+                                  Print
+                                </Button>
+                                <Button
+                                  onClick={handleDownloadAdmitCard}
+                                  className="gap-2 bg-green-600 hover:bg-green-700"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  Download PDF
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+
+                      {admitCardError && (
+                        <Card className="border-2 border-red-200 bg-red-50">
+                          <CardContent className="pt-6 text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Search className="w-8 h-8 text-red-600" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-red-700 mb-2">Not Found</h3>
+                            <p className="text-gray-600">{admitCardError}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </CardContent>
+               </Card>
+             </TabsContent>
+           </Tabs>
 
             {/* Footer */}
             <div className="text-center mt-8 text-sm text-gray-500">
@@ -584,24 +964,31 @@ export default function PublicRegistrationPage() {
             <p className="text-gray-500 text-sm md:text-base">Please fill in all the required fields accurately</p>
           </div>
 
-          {/* Tabs for Registration and Result Checking */}
-          <Tabs defaultValue="registration" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white shadow-md">
-              <TabsTrigger 
-                value="registration" 
-                className="text-sm md:text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
-              >
-                <User className="w-4 h-4 mr-2" />
-                Registration
-              </TabsTrigger>
-              <TabsTrigger 
-                value="results" 
-                className="text-sm md:text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Check Result
-              </TabsTrigger>
-            </TabsList>
+           {/* Tabs for Registration, Admit Card and Result Checking */}
+           <Tabs defaultValue="registration" className="w-full">
+             <TabsList className="grid w-full grid-cols-3 mb-6 bg-white shadow-md">
+               <TabsTrigger 
+                 value="registration" 
+                 className="text-sm md:text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+               >
+                 <User className="w-4 h-4 mr-2" />
+                 Registration
+               </TabsTrigger>
+               <TabsTrigger 
+                 value="admit-card" 
+                 className="text-sm md:text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+               >
+                 <Download className="w-4 h-4 mr-2" />
+                 Admit Card
+               </TabsTrigger>
+               <TabsTrigger 
+                 value="results" 
+                 className="text-sm md:text-base py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+               >
+                 <Search className="w-4 h-4 mr-2" />
+                 Check Result
+               </TabsTrigger>
+             </TabsList>
 
             {/* Registration Tab */}
             <TabsContent value="registration">
