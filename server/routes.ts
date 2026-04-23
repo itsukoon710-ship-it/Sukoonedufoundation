@@ -977,6 +977,9 @@ if (!examResult) {
           isSelected = passCount >= (activeYear.minSubjectsToPass || 3);
         } else if (activeYear.selectionMode === "total_marks") {
           isSelected = totalMarks >= (activeYear.totalCutoffMarks || 120);
+        } else if (activeYear.selectionMode === "top_students") {
+          // For top_students mode, selection is applied manually, check status
+          isSelected = student.status === "selected_for_interview";
         }
         
         res.json({
@@ -1041,26 +1044,60 @@ if (!examResult) {
      }
    });
 
-   app.post("/api/admin/toggle-public-registration", requireAdmin, async (req, res) => {
-     try {
-       const { admissionYear, enabled } = req.body;
-       const year = admissionYear || DEFAULT_ADMISSION_YEAR;
+    app.post("/api/admin/toggle-public-registration", requireAdmin, async (req, res) => {
+      try {
+        const { admissionYear, enabled } = req.body;
+        const year = admissionYear || DEFAULT_ADMISSION_YEAR;
 
-       // Update admission year to toggle public registration
-       const admissionYears = await storage.getAdmissionYears();
-       const yearToUpdate = admissionYears.find(y => y.year === year);
+        // Update admission year to toggle public registration
+        const admissionYears = await storage.getAdmissionYears();
+        const yearToUpdate = admissionYears.find(y => y.year === year);
 
-       if (!yearToUpdate) {
-         return res.status(404).json({ message: "Admission year not found" });
-       }
+        if (!yearToUpdate) {
+          return res.status(404).json({ message: "Admission year not found" });
+        }
 
-       await storage.updateAdmissionYear(yearToUpdate.id, { publicRegistrationEnabled: enabled });
+        await storage.updateAdmissionYear(yearToUpdate.id, { publicRegistrationEnabled: enabled });
 
-       res.json({ message: `Public registration ${enabled ? 'enabled' : 'disabled'} successfully`, year });
-     } catch (err: any) {
-       res.status(500).json({ message: err.message });
-     }
-   });
+        res.json({ message: `Public registration ${enabled ? 'enabled' : 'disabled'} successfully`, year });
+      } catch (err: any) {
+        res.status(500).json({ message: err.message });
+      }
+    });
+
+    app.post("/api/admin/apply-selection-rule", requireAdmin, async (req, res) => {
+      try {
+        const { admissionYear, numberOfStudentsToSelect } = req.body;
+        const year = admissionYear || DEFAULT_ADMISSION_YEAR;
+
+        if (!numberOfStudentsToSelect || numberOfStudentsToSelect <= 0) {
+          return res.status(400).json({ message: "Number of students to select must be a positive integer" });
+        }
+
+        // Update admission year with the selection count
+        const admissionYears = await storage.getAdmissionYears();
+        const yearToUpdate = admissionYears.find(y => y.year === year);
+
+        if (!yearToUpdate) {
+          return res.status(404).json({ message: "Admission year not found" });
+        }
+
+        await storage.updateAdmissionYear(yearToUpdate.id, { numberOfStudentsToSelect });
+
+        // Apply selection rule
+        const result = await storage.calculateSelection(year, numberOfStudentsToSelect);
+
+        res.json({
+          message: "Selection rule applied successfully",
+          year,
+          numberOfStudentsToSelect,
+          totalSelected: result.totalSelected,
+          selectedStudents: result.selectedStudents.length,
+        });
+      } catch (err: any) {
+        res.status(500).json({ message: err.message });
+      }
+    });
 
    // DASHBOARD STATS
    app.get("/api/dashboard/stats", requireAuth, async (req, res) => {

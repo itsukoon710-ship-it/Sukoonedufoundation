@@ -204,6 +204,27 @@ export async function runMigrations() {
       console.log("✓ public_registration_enabled column already exists");
     }
 
+    // Migration 7: Add number_of_students_to_select column to admission_years table
+    console.log("\n=== Migration 7: Adding number_of_students_to_select column to admission_years ===");
+
+    const numberOfStudentsColumnResult = await db.execute(sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'admission_years'
+      AND column_name = 'number_of_students_to_select'
+    `);
+
+    if (numberOfStudentsColumnResult.rows.length === 0) {
+      console.log("Adding number_of_students_to_select column...");
+      await db.execute(sql`
+        ALTER TABLE admission_years
+        ADD COLUMN number_of_students_to_select INTEGER
+      `);
+      console.log("✓ Successfully added number_of_students_to_select column");
+    } else {
+      console.log("✓ number_of_students_to_select column already exists");
+    }
+
     console.log("\n=== All migrations completed successfully! ===");
   } catch (error) {
     console.error("Migration failed:", error);

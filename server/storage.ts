@@ -28,6 +28,7 @@ export interface IStorage {
   getActiveAdmissionYear(): Promise<AdmissionYear | undefined>;
   createAdmissionYear(data: InsertAdmissionYear): Promise<AdmissionYear>;
   updateAdmissionYear(id: string, data: Partial<InsertAdmissionYear>): Promise<AdmissionYear>;
+  calculateSelection(admissionYear: number, selectCount: number): Promise<{ selectedStudents: string[]; totalSelected: number }>;
 
   // Centers
   getCenters(admissionYear?: number): Promise<Center[]>;
@@ -184,6 +185,55 @@ export class DatabaseStorage implements IStorage {
   async updateAdmissionYear(id: string, data: Partial<InsertAdmissionYear>): Promise<AdmissionYear> {
     const result = await db.update(admissionYears).set(data).where(eq(admissionYears.id, id)).returning();
     return result[0];
+  }
+
+  async calculateSelection(admissionYear: number, selectCount: number): Promise<{ selectedStudents: string[]; totalSelected: number }> {
+    // Get all students with exam results for the admission year
+    const studentsWithResults = await db
+      .select({
+        studentId: students.id,
+        marks: examResults.marks,
+        status: students.status,
+      })
+      .from(students)
+      .innerJoin(examResults, eq(students.id, examResults.studentId))
+      .where(and(
+        eq(students.admissionYear, admissionYear),
+        eq(students.status, "exam_done") // Only consider students who have completed exam
+      ))
+      .orderBy(desc(examResults.marks));
+
+    if (studentsWithResults.length === 0) {
+      return { selectedStudents: [], totalSelected: 0 };
+    }
+
+    // Sort students by marks descending (already done in query)
+    const sortedStudents = studentsWithResults;
+
+    // Determine cutoff: select top selectCount, but include all with same score as the cutoff
+    let cutoffIndex = selectCount - 1;
+    if (cutoffIndex >= sortedStudents.length) {
+      cutoffIndex = sortedStudents.length - 1;
+    }
+
+    const cutoffScore = sortedStudents[cutoffIndex].marks;
+
+    // Include all students with score >= cutoffScore
+    const selectedStudents = sortedStudents.filter(student => student.marks >= cutoffScore);
+
+    // Update status to selected_for_interview
+    const studentIds = selectedStudents.map(s => s.studentId);
+    if (studentIds.length > 0) {
+      await db
+        .update(students)
+        .set({ status: "selected_for_interview" })
+        .where(inArray(students.id, studentIds));
+    }
+
+    return {
+      selectedStudents: studentIds,
+      totalSelected: studentIds.length,
+    };
   }
 
   async getCenters(admissionYear?: number): Promise<Center[]> {

@@ -16,7 +16,7 @@ export const studentStatusEnum = pgEnum("student_status", [
   "rejected"
 ]);
 export const interviewDecisionEnum = pgEnum("interview_decision", ["selected", "waitlisted", "rejected"]);
-export const selectionModeEnum = pgEnum("selection_mode", ["all_pass", "min_subjects", "total_marks"]);
+export const selectionModeEnum = pgEnum("selection_mode", ["all_pass", "min_subjects", "total_marks", "top_students"]);
 
 export const admissionYears = pgTable("admission_years", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -26,6 +26,7 @@ export const admissionYears = pgTable("admission_years", {
   selectionMode: selectionModeEnum("selection_mode").notNull().default("all_pass"),
   minSubjectsToPass: integer("min_subjects_to_pass").notNull().default(3),
   totalCutoffMarks: integer("total_cutoff_marks").notNull().default(120),
+  numberOfStudentsToSelect: integer("number_of_students_to_select"),
   resultsPublished: boolean("results_published").notNull().default(false),
   publicRegistrationEnabled: boolean("public_registration_enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),

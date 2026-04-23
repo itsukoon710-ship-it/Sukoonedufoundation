@@ -35,6 +35,7 @@ const selectionModeLabels: Record<string, { label: string; desc: string }> = {
   all_pass: { label: "All Subjects Pass", desc: "Student must pass every active subject to be selected for interview" },
   min_subjects: { label: "Minimum Subjects Pass", desc: "Student must pass at least a set number of subjects" },
   total_marks: { label: "Total Marks Cutoff", desc: "Student's total marks across all subjects must meet a minimum" },
+  top_students: { label: "Top Students Selection", desc: "Select top N students by total marks, including ties at cutoff" },
 };
 
 export default function ExamSettingsPage() {
@@ -66,6 +67,7 @@ export default function ExamSettingsPage() {
       selectionMode: activeYear?.selectionMode || "all_pass",
       minSubjectsToPass: activeYear?.minSubjectsToPass || 3,
       totalCutoffMarks: activeYear?.totalCutoffMarks || 120,
+      numberOfStudentsToSelect: activeYear?.numberOfStudentsToSelect || 50,
     },
   });
 
@@ -76,6 +78,7 @@ export default function ExamSettingsPage() {
         selectionMode: activeYear.selectionMode,
         minSubjectsToPass: activeYear.minSubjectsToPass,
         totalCutoffMarks: activeYear.totalCutoffMarks,
+        numberOfStudentsToSelect: activeYear.numberOfStudentsToSelect || 50,
       });
     }
   });
@@ -185,6 +188,27 @@ export default function ExamSettingsPage() {
     },
   });
 
+  const applySelectionRuleMutation = useMutation({
+    mutationFn: (data: { numberOfStudentsToSelect: number }) =>
+      apiRequest("POST", "/api/admin/apply-selection-rule", { admissionYear: activeYear?.year, numberOfStudentsToSelect: data.numberOfStudentsToSelect }),
+    onSuccess: (result) => {
+      toast({
+        title: "Selection Rule Applied Successfully",
+        description: `Selected ${result.totalSelected} students for interview.`,
+        duration: 5000,
+      });
+      qc.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      qc.invalidateQueries({ queryKey: ["/api/students"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to Apply Selection Rule",
+        description: err.message || "An error occurred while applying the selection rule.",
+        variant: "destructive"
+      });
+    },
+  });
+
   const onSubmitSubject = (data: SubjectForm) => {
     if (editing) updateSubject.mutate({ id: editing.id, data });
     else createSubject.mutate(data);
@@ -212,6 +236,7 @@ export default function ExamSettingsPage() {
       selectionMode: data.selectionMode,
       minSubjectsToPass: parseInt(data.minSubjectsToPass),
       totalCutoffMarks: parseInt(data.totalCutoffMarks),
+      numberOfStudentsToSelect: parseInt(data.numberOfStudentsToSelect),
     });
   };
 
@@ -296,6 +321,22 @@ export default function ExamSettingsPage() {
                 </div>
               )}
 
+              {selectionMode === "top_students" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Number of Students to Select</label>
+                  <p className="text-xs text-muted-foreground">
+                    Select top N students by total marks, including all students with same score at cutoff
+                  </p>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-40"
+                    {...yearForm.register("numberOfStudentsToSelect", { valueAsNumber: true })}
+                    data-testid="input-number-students-select"
+                  />
+                </div>
+              )}
+
               {/* Current rule summary */}
               <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -304,12 +345,26 @@ export default function ExamSettingsPage() {
                   {selectionMode === "all_pass" && <p className="text-muted-foreground">Student must pass ALL {activeSubjects.length} active subjects</p>}
                   {selectionMode === "min_subjects" && <p className="text-muted-foreground">Student must pass at least {yearForm.watch("minSubjectsToPass")} out of {activeSubjects.length} subjects</p>}
                   {selectionMode === "total_marks" && <p className="text-muted-foreground">Student must score at least {yearForm.watch("totalCutoffMarks")} total marks</p>}
+                  {selectionMode === "top_students" && <p className="text-muted-foreground">Select top {yearForm.watch("numberOfStudentsToSelect")} students by total marks (ties included)</p>}
                 </div>
               </div>
 
-              <Button type="submit" disabled={updateYearConfig.isPending} data-testid="button-save-selection-rules">
-                {updateYearConfig.isPending ? "Saving..." : "Save Selection Rules"}
-              </Button>
+              <div className="flex gap-3">
+                <Button type="submit" disabled={updateYearConfig.isPending} data-testid="button-save-selection-rules">
+                  {updateYearConfig.isPending ? "Saving..." : "Save Selection Rules"}
+                </Button>
+                {selectionMode === "top_students" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => applySelectionRuleMutation.mutate({ numberOfStudentsToSelect: yearForm.watch("numberOfStudentsToSelect") })}
+                    disabled={applySelectionRuleMutation.isPending}
+                    data-testid="button-apply-selection-rule"
+                  >
+                    {applySelectionRuleMutation.isPending ? "Applying..." : "Apply Selection Rule"}
+                  </Button>
+                )}
+              </div>
             </form>
           )}
         </CardContent>
