@@ -232,6 +232,10 @@ export default function ExamSettingsPage() {
   };
 
   const onSaveYearConfig = (data: any) => {
+    if (!activeYear) {
+      toast({ title: "Error", description: "No active admission year found. Please set an active admission year first.", variant: "destructive" });
+      return;
+    }
     updateYearConfig.mutate({
       selectionMode: data.selectionMode,
       minSubjectsToPass: parseInt(data.minSubjectsToPass),

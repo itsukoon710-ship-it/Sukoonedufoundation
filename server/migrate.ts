@@ -225,6 +225,32 @@ export async function runMigrations() {
       console.log("✓ number_of_students_to_select column already exists");
     }
 
+    // Migration 8: Add 'top_students' to selection_mode enum
+    console.log("\n=== Migration 8: Adding 'top_students' to selection_mode enum ===");
+
+    try {
+      // Check if 'top_students' is already in the enum
+      const enumResult = await db.execute(sql`
+        SELECT enumtypid::regtype AS enum_type, enumlabel
+        FROM pg_enum
+        WHERE enumtypid = 'selection_mode'::regtype
+        ORDER BY enumsortorder
+      `);
+
+      const existingValues = enumResult.rows.map(row => row.enumlabel);
+      console.log("Current selection_mode enum values:", existingValues);
+
+      if (!existingValues.includes('top_students')) {
+        console.log("Adding 'top_students' to selection_mode enum...");
+        await db.execute(sql`ALTER TYPE selection_mode ADD VALUE 'top_students'`);
+        console.log("✓ Successfully added 'top_students' to selection_mode enum");
+      } else {
+        console.log("✓ 'top_students' already exists in selection_mode enum");
+      }
+    } catch (error: any) {
+      console.log("Note: Could not check/add enum value (may already exist):", error.message);
+    }
+
     console.log("\n=== All migrations completed successfully! ===");
   } catch (error) {
     console.error("Migration failed:", error);
