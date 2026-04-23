@@ -207,22 +207,36 @@ export async function runMigrations() {
     // Migration 7: Add number_of_students_to_select column to admission_years table
     console.log("\n=== Migration 7: Adding number_of_students_to_select column to admission_years ===");
 
-    const numberOfStudentsColumnResult = await db.execute(sql`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'admission_years'
-      AND column_name = 'number_of_students_to_select'
-    `);
-
-    if (numberOfStudentsColumnResult.rows.length === 0) {
-      console.log("Adding number_of_students_to_select column...");
-      await db.execute(sql`
-        ALTER TABLE admission_years
-        ADD COLUMN number_of_students_to_select INTEGER
+    try {
+      const tableCheck = await db.execute(sql`
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_name = 'admission_years'
       `);
-      console.log("✓ Successfully added number_of_students_to_select column");
-    } else {
-      console.log("✓ number_of_students_to_select column already exists");
+      console.log("Admission years table exists:", tableCheck.rows.length > 0);
+
+      const numberOfStudentsColumnResult = await db.execute(sql`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'admission_years'
+        AND column_name = 'number_of_students_to_select'
+      `);
+      console.log("Column check result rows:", numberOfStudentsColumnResult.rows.length);
+      console.log("Column exists:", numberOfStudentsColumnResult.rows.length > 0);
+
+      if (numberOfStudentsColumnResult.rows.length === 0) {
+        console.log("Adding number_of_students_to_select column...");
+        await db.execute(sql`
+          ALTER TABLE admission_years
+          ADD COLUMN IF NOT EXISTS number_of_students_to_select INTEGER
+        `);
+        console.log("✓ Successfully added number_of_students_to_select column");
+      } else {
+        console.log("✓ number_of_students_to_select column already exists");
+      }
+    } catch (error) {
+      console.error("Error in Migration 7:", error);
+      throw error;
     }
 
     // Migration 8: Add 'top_students' to selection_mode enum
