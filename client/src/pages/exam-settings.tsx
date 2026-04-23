@@ -189,8 +189,12 @@ export default function ExamSettingsPage() {
   });
 
   const applySelectionRuleMutation = useMutation({
-    mutationFn: (data: { numberOfStudentsToSelect: number }) =>
-      apiRequest("POST", "/api/admin/apply-selection-rule", { admissionYear: activeYear?.year, numberOfStudentsToSelect: data.numberOfStudentsToSelect }),
+    mutationFn: (data: { numberOfStudentsToSelect: number }) => {
+      if (!activeYear?.year || !data.numberOfStudentsToSelect || data.numberOfStudentsToSelect <= 0) {
+        throw new Error("Invalid parameters: admission year and number of students must be provided");
+      }
+      return apiRequest("POST", "/api/admin/apply-selection-rule", { admissionYear: activeYear.year, numberOfStudentsToSelect: data.numberOfStudentsToSelect });
+    },
     onSuccess: (result) => {
       toast({
         title: "Selection Rule Applied Successfully",
@@ -236,12 +240,16 @@ export default function ExamSettingsPage() {
       toast({ title: "Error", description: "No active admission year found. Please set an active admission year first.", variant: "destructive" });
       return;
     }
-    updateYearConfig.mutate({
+    const updateData: any = {
       selectionMode: data.selectionMode,
       minSubjectsToPass: parseInt(data.minSubjectsToPass),
       totalCutoffMarks: parseInt(data.totalCutoffMarks),
-      numberOfStudentsToSelect: parseInt(data.numberOfStudentsToSelect),
-    });
+    };
+    const numStudents = parseInt(data.numberOfStudentsToSelect);
+    if (!isNaN(numStudents) && numStudents > 0) {
+      updateData.numberOfStudentsToSelect = numStudents;
+    }
+    updateYearConfig.mutate(updateData);
   };
 
   const selectionMode = yearForm.watch("selectionMode");
@@ -361,7 +369,14 @@ export default function ExamSettingsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => applySelectionRuleMutation.mutate({ numberOfStudentsToSelect: yearForm.watch("numberOfStudentsToSelect") })}
+                    onClick={() => {
+                      const num = yearForm.watch("numberOfStudentsToSelect");
+                      if (num && num > 0) {
+                        applySelectionRuleMutation.mutate({ numberOfStudentsToSelect: num });
+                      } else {
+                        toast({ title: "Error", description: "Please enter a valid number of students to select.", variant: "destructive" });
+                      }
+                    }}
                     disabled={applySelectionRuleMutation.isPending}
                     data-testid="button-apply-selection-rule"
                   >
