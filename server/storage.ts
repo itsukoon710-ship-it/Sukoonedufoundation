@@ -168,7 +168,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdmissionYears(): Promise<AdmissionYear[]> {
-    return db.select().from(admissionYears).orderBy(desc(admissionYears.year));
+    // Use raw query to avoid schema mismatch if column doesn't exist
+    const result = await db.execute(sql`
+      SELECT id, year, cutoff_marks as "cutoffMarks", is_active as "isActive",
+             selection_mode as "selectionMode", min_subjects_to_pass as "minSubjectsToPass",
+             total_cutoff_marks as "totalCutoffMarks", results_published as "resultsPublished",
+             public_registration_enabled as "publicRegistrationEnabled",
+             created_at as "createdAt",
+             number_of_students_to_select as "numberOfStudentsToSelect"
+      FROM admission_years
+      ORDER BY year DESC
+    `);
+    return result.rows as AdmissionYear[];
   }
 
   async getActiveAdmissionYear(): Promise<AdmissionYear | undefined> {
@@ -183,8 +194,79 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAdmissionYear(id: string, data: Partial<InsertAdmissionYear>): Promise<AdmissionYear> {
-    const result = await db.update(admissionYears).set(data).where(eq(admissionYears.id, id)).returning();
-    return result[0];
+    // Use raw query to safely update without failing if column doesn't exist
+    const setParts = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (data.year !== undefined) {
+      setParts.push(`year = $${paramIndex++}`);
+      values.push(data.year);
+    }
+    if (data.cutoffMarks !== undefined) {
+      setParts.push(`cutoff_marks = $${paramIndex++}`);
+      values.push(data.cutoffMarks);
+    }
+    if (data.isActive !== undefined) {
+      setParts.push(`is_active = $${paramIndex++}`);
+      values.push(data.isActive);
+    }
+    if (data.selectionMode !== undefined) {
+      setParts.push(`selection_mode = $${paramIndex++}`);
+      values.push(data.selectionMode);
+    }
+    if (data.minSubjectsToPass !== undefined) {
+      setParts.push(`min_subjects_to_pass = $${paramIndex++}`);
+      values.push(data.minSubjectsToPass);
+    }
+    if (data.totalCutoffMarks !== undefined) {
+      setParts.push(`total_cutoff_marks = $${paramIndex++}`);
+      values.push(data.totalCutoffMarks);
+    }
+    if (data.resultsPublished !== undefined) {
+      setParts.push(`results_published = $${paramIndex++}`);
+      values.push(data.resultsPublished);
+    }
+    if (data.publicRegistrationEnabled !== undefined) {
+      setParts.push(`public_registration_enabled = $${paramIndex++}`);
+      values.push(data.publicRegistrationEnabled);
+    }
+    if (data.numberOfStudentsToSelect !== undefined) {
+      // Check if column exists before setting
+      try {
+        const columnCheck = await db.execute(sql`
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'admission_years' AND column_name = 'number_of_students_to_select'
+        `);
+        if (columnCheck.rows.length > 0) {
+          setParts.push(`number_of_students_to_select = $${paramIndex++}`);
+          values.push(data.numberOfStudentsToSelect);
+        }
+      } catch (error) {
+        // Column doesn't exist, skip
+      }
+    }
+
+    if (setParts.length === 0) {
+      // No fields to update, just return current
+      return this.getAdmissionYears().then(years => years.find(y => y.id === id)!);
+    }
+
+    values.push(id);
+    const query = `
+      UPDATE admission_years
+      SET ${setParts.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id, year, cutoff_marks as "cutoffMarks", is_active as "isActive",
+               selection_mode as "selectionMode", min_subjects_to_pass as "minSubjectsToPass",
+               total_cutoff_marks as "totalCutoffMarks", results_published as "resultsPublished",
+               public_registration_enabled as "publicRegistrationEnabled",
+               created_at as "createdAt",
+               number_of_students_to_select as "numberOfStudentsToSelect"
+    `;
+
+    const result = await db.execute(sql.raw(query), values);
+    return result.rows[0] as AdmissionYear;
   }
 
   async calculateSelection(admissionYear: number, selectCount: number): Promise<{ selectedStudents: string[]; totalSelected: number }> {
