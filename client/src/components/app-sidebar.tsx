@@ -13,16 +13,18 @@ import { Badge } from "@/components/ui/badge";
 import { useLocation as useWouterLocation } from "wouter";
 
 const adminMenuItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Students", url: "/students", icon: Users },
-  { title: "Centers", url: "/centers", icon: MapPin },
-  { title: "Coordinators", url: "/coordinators", icon: UserCheck },
-  { title: "Exam Settings", url: "/exam-settings", icon: Settings2 },
-  { title: "Exam Results", url: "/exam-marks", icon: ClipboardList },
-  { title: "Interview Selection", url: "/interview", icon: FileText },
-  { title: "Admissions", url: "/admissions", icon: Award },
-  { title: "Reports", url: "/reports", icon: BarChart2 },
-];
+   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+   { title: "Students", url: "/students", icon: Users },
+   { title: "Room Allotment", url: "/room-allotment", icon: Users }, // Using Users icon for now, can change to a building icon later
+   { title: "Gate Entry", url: "/gate-entry", icon: Search }, // Using Search icon for now
+   { title: "Centers", url: "/centers", icon: MapPin },
+   { title: "Coordinators", url: "/coordinators", icon: UserCheck },
+   { title: "Exam Settings", url: "/exam-settings", icon: Settings2 },
+   { title: "Exam Results", url: "/exam-marks", icon: ClipboardList },
+   { title: "Interview Selection", url: "/interview", icon: FileText },
+   { title: "Admissions", url: "/admissions", icon: Award },
+   { title: "Reports", url: "/reports", icon: BarChart2 },
+ ];
 
 const coordinatorMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },

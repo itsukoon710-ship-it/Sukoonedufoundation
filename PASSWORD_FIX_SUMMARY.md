@@ -70,7 +70,6 @@ This script will:
 3. Identify users with unhashed passwords
 4. Hash the unhashed passwords using bcrypt
 5. Update the database with the hashed passwords
-
 ## Files Modified
 
 1. `server/storage.ts` - Fixed all user-related functions to handle missing column and hash passwords
@@ -79,8 +78,7 @@ This script will:
 4. `server/fix-passwords.ts` - New script to fix existing users
 5. `server/add-marks-permission.ts` - New script to add missing column
 6. `server/migrate.ts` - New combined migration script
-7. `package.json` - Added migration scripts
-
+7. `package.json` - Added migration scripts 
 ## Testing
 
 After running the migration:
@@ -98,4 +96,4 @@ The fix ensures that:
 - Empty password fields during updates preserve the existing password
 - All required database columns exist
 - Application gracefully handles missing database columns
- 
+  

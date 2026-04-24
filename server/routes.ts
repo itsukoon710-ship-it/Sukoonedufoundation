@@ -676,15 +676,73 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.delete("/api/students/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = getStringParam(req.params.id);
-      await storage.deleteStudent(id);
-      res.json({ message: "Student deleted" });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
+   app.delete("/api/students/:id", requireAdmin, async (req, res) => {
+     try {
+       const id = getStringParam(req.params.id);
+       await storage.deleteStudent(id);
+       res.json({ message: "Student deleted" });
+     } catch (err: any) {
+       res.status(500).json({ message: err.message });
+     }
+   });
+
+   // PATCH endpoint for updating room number (for room allotment)
+   app.patch("/api/students/:id", requireAuth, async (req, res) => {
+     try {
+       const id = getStringParam(req.params.id);
+       const user = req.user as any;
+       
+       // Check permissions: admin can update any student, coordinator only their own
+       if (user.role === "coordinator") {
+         const student = await storage.getStudentById(id);
+         if (!student || student.coordinatorId !== user.id) {
+           return res.status(403).json({ message: "Forbidden" });
+         }
+       }
+       
+       // Only allow updating room_number field for security
+       const allowedUpdates: { [key: string]: any } = {};
+       if (req.body.room_number !== undefined) {
+         allowedUpdates.room_number = req.body.room_number;
+       }
+       
+       if (Object.keys(allowedUpdates).length === 0) {
+         return res.status(400).json({ message: "No valid fields to update" });
+       }
+       
+       const student = await storage.updateStudent(id, allowedUpdates);
+       res.json(student);
+     } catch (err: any) {
+       res.status(400).json({ message: err.message });
+     }
+   });
+
+   // PATCH endpoint for updating presence status (for gate verification)
+   app.patch("/api/students/:id/presence", requireAuth, async (req, res) => {
+     try {
+       const id = getStringParam(req.params.id);
+       const { is_present } = req.body;
+       
+       // Allow admin, coordinator, and examiner to update presence
+       const user = req.user as any;
+       if (user.role !== "admin" && user.role !== "coordinator" && user.role !== "examiner") {
+         return res.status(403).json({ message: "Forbidden" });
+       }
+       
+       // Coordinators can only update their own students
+       if (user.role === "coordinator") {
+         const student = await storage.getStudentById(id);
+         if (!student || student.coordinatorId !== user.id) {
+           return res.status(403).json({ message: "Forbidden" });
+         }
+       }
+       
+       const student = await storage.updateStudent(id, { is_present });
+       res.json(student);
+     } catch (err: any) {
+       res.status(400).json({ message: err.message });
+     }
+   });
 
   // EXAM RESULTS
   app.get("/api/exam-results", requireAuth, async (req, res) => {

@@ -21,6 +21,8 @@ import ReportsPage from "@/pages/reports";
 import PublicRegistrationPage from "@/pages/public-registration";
 import CoordinatorDashboardPage from "@/pages/coordinator-dashboard";
 import NotFound from "@/pages/not-found";
+import RoomAllotmentPage from "@/pages/room-allotment";
+import GateEntryPage from "@/pages/gate-entry";
 import { Skeleton } from "@/components/ui/skeleton";
 import { School } from "lucide-react";
 
@@ -104,23 +106,25 @@ function AppLayout() {
           </header>
           <main className="flex-1 overflow-auto">
             <Switch>
-               <Route path="/" component={() => <ProtectedRoute component={DashboardPage} roles={["admin", "coordinator"]} />} />
-               <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} roles={["admin", "coordinator"]} />} />
-               <Route path="/coordinator-dashboard" component={() => <ProtectedRoute component={CoordinatorDashboardPage} roles={["admin", "coordinator"]} />} />
-               <Route path="/students" component={() => <ProtectedRoute component={StudentsPage} roles={["admin", "coordinator"]} />} />
-               <Route path="/students/add" component={() => <ProtectedRoute component={AddStudentPage} roles={["admin", "coordinator"]} />} />
-               <Route path="/admit-cards" component={() => <ProtectedRoute component={AdmitCardsPage} roles={["admin", "coordinator"]} />} />
-               <Route path="/exam-settings" component={() => <ProtectedRoute component={ExamSettingsPage} adminOnly={true} />} />
-               <Route path="/exam-marks" component={() => <ProtectedRoute component={ExamMarksPage} marksEntryOnly={true} />} />
-               <Route path="/interview" component={() => <ProtectedRoute component={InterviewPage} adminOnly={true} />} />
-               <Route path="/admissions" component={() => <ProtectedRoute component={AdmissionsPage} adminOnly={true} />} />
-               <Route path="/centers" component={() => <ProtectedRoute component={CentersPage} adminOnly={true} />} />
-               <Route path="/coordinators" component={() => <ProtectedRoute component={CoordinatorsPage} adminOnly={true} />} />
-               <Route path="/reports" component={() => <ProtectedRoute component={ReportsPage} adminOnly={true} />} />
-               <Route path="/login" component={() => <Redirect to="/" />} />
-               <Route path="/register" component={PublicRegistrationPage} />
-               <Route component={NotFound} />
-             </Switch>
+                <Route path="/" component={() => <ProtectedRoute component={DashboardPage} roles={["admin", "coordinator"]} />} />
+                <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} roles={["admin", "coordinator"]} />} />
+                <Route path="/coordinator-dashboard" component={() => <ProtectedRoute component={CoordinatorDashboardPage} roles={["admin", "coordinator"]} />} />
+                <Route path="/students" component={() => <ProtectedRoute component={StudentsPage} roles={["admin", "coordinator"]} />} />
+                <Route path="/students/add" component={() => <ProtectedRoute component={AddStudentPage} roles={["admin", "coordinator"]} />} />
+                <Route path="/admit-cards" component={() => <ProtectedRoute component={AdmitCardsPage} roles={["admin", "coordinator"]} />} />
+                <Route path="/room-allotment" component={() => <ProtectedRoute component={RoomAllotmentPage} roles={["admin", "coordinator"]} />} />
+                <Route path="/gate-entry" component={() => <ProtectedRoute component={GateEntryPage} roles={["admin", "coordinator", "examiner"]} />} />
+                <Route path="/exam-settings" component={() => <ProtectedRoute component={ExamSettingsPage} adminOnly={true} />} />
+                <Route path="/exam-marks" component={() => <ProtectedRoute component={ExamMarksPage} marksEntryOnly={true} />} />
+                <Route path="/interview" component={() => <ProtectedRoute component={InterviewPage} adminOnly={true} />} />
+                <Route path="/admissions" component={() => <ProtectedRoute component={AdmissionsPage} adminOnly={true} />} />
+                <Route path="/centers" component={() => <ProtectedRoute component={CentersPage} adminOnly={true} />} />
+                <Route path="/coordinators" component={() => <ProtectedRoute component={CoordinatorsPage} adminOnly={true} />} />
+                <Route path="/reports" component={() => <ProtectedRoute component={ReportsPage} adminOnly={true} />} />
+                <Route path="/login" component={() => <Redirect to="/" />} />
+                <Route path="/register" component={PublicRegistrationPage} />
+                <Route component={NotFound} />
+              </Switch>
           </main>
         </div>
       </div>

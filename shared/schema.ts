@@ -65,41 +65,43 @@ export const subjects = pgTable("subjects", {
 });
 
 export const students = pgTable("students", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  applicationId: text("application_id").notNull().unique(),
-  name: text("name").notNull(),
-  age: integer("age").notNull(),
-  dateOfBirth: text("date_of_birth").notNull(),
-  gender: genderEnum("gender").notNull(),
-  fatherName: text("father_name").notNull(),
-  fatherOccupation: text("father_occupation").notNull(),
-  motherName: text("mother_name").notNull(),
-  mobile: text("mobile").notNull(),
-  phone: text("phone"),
-  aadhaarNumber: text("aadhaar_number").notNull(),
-  village: text("village").notNull(),
-  district: text("district").notNull(),
-  state: text("state").notNull(),
-  address: text("address").notNull(),
-  previousSchool: text("previous_school").notNull(),
-  classApplying: text("class_applying").notNull(),
-  photoUrl: text("photo_url"),
-  centerId: varchar("center_id").references(() => centers.id),
-  coordinatorId: varchar("coordinator_id").references(() => users.id),
-  admissionYear: integer("admission_year").notNull().default(2026),
-  status: studentStatusEnum("status").notNull().default("registered"),
-  examDate: text("exam_date"),
-  examCenter: text("exam_center"),
-  declaration: boolean("declaration").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => {
-  return {
-    admissionYearIdx: index("idx_students_admission_year").on(table.admissionYear),
-    statusIdx: index("idx_students_status").on(table.status),
-    centerIdIdx: index("idx_students_center_id").on(table.centerId),
-    coordinatorIdIdx: index("idx_students_coordinator_id").on(table.coordinatorId),
-  };
-});
+   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+   applicationId: text("application_id").notNull().unique(),
+   name: text("name").notNull(),
+   age: integer("age").notNull(),
+   dateOfBirth: text("date_of_birth").notNull(),
+   gender: genderEnum("gender").notNull(),
+   fatherName: text("father_name").notNull(),
+   fatherOccupation: text("father_occupation").notNull(),
+   motherName: text("mother_name").notNull(),
+   mobile: text("mobile").notNull(),
+   phone: text("phone"),
+   aadhaarNumber: text("aadhaar_number").notNull(),
+   village: text("village").notNull(),
+   district: text("district").notNull(),
+   state: text("state").notNull(),
+   address: text("address").notNull(),
+   previousSchool: text("previous_school").notNull(),
+   classApplying: text("class_applying").notNull(),
+   photoUrl: text("photo_url"),
+   centerId: varchar("center_id").references(() => centers.id),
+   coordinatorId: varchar("coordinator_id").references(() => users.id),
+   admissionYear: integer("admission_year").notNull().default(2026),
+   status: studentStatusEnum("status").notNull().default("registered"),
+   examDate: text("exam_date"),
+   examCenter: text("exam_center"),
+   declaration: boolean("declaration").notNull().default(false),
+   roomNumber: text("room_number"), // For room allotment
+   isPresent: boolean("is_present").notNull().default(false), // For gate verification
+   createdAt: timestamp("created_at").defaultNow(),
+ }, (table) => {
+   return {
+     admissionYearIdx: index("idx_students_admission_year").on(table.admissionYear),
+     statusIdx: index("idx_students_status").on(table.status),
+     centerIdIdx: index("idx_students_center_id").on(table.centerId),
+     coordinatorIdIdx: index("idx_students_coordinator_id").on(table.coordinatorId),
+   };
+ });
 
 export const studentSubjectMarks = pgTable("student_subject_marks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
