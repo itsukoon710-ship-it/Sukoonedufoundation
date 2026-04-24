@@ -1,5 +1,5 @@
 import { db } from "./db.js";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, SQL, inArray } from "drizzle-orm";
 import {
   users, centers, students, examResults, interviewResults, admissionYears,
   subjects, studentSubjectMarks,
@@ -194,93 +194,95 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateAdmissionYear(id: string, data: Partial<InsertAdmissionYear>): Promise<AdmissionYear> {
-    // Use raw query to safely update without failing if column doesn't exist
-    const setParts = [];
-    const values = [];
-    let paramIndex = 1;
+   async updateAdmissionYear(id: string, data: Partial<InsertAdmissionYear>): Promise<AdmissionYear> {
+     // Use sql template literal with proper parameter handling
+     const updates: SQL[] = [];
 
-    if (data.year !== undefined) {
-      setParts.push(`year = $${paramIndex++}`);
-      values.push(data.year);
-    }
-    if (data.cutoffMarks !== undefined) {
-      setParts.push(`cutoff_marks = $${paramIndex++}`);
-      values.push(data.cutoffMarks);
-    }
-    if (data.isActive !== undefined) {
-      setParts.push(`is_active = $${paramIndex++}`);
-      values.push(data.isActive);
-    }
-    if (data.selectionMode !== undefined) {
-      // Check if the enum value exists before setting
-      try {
-        const enumCheck = await db.execute(sql`
-          SELECT 1 FROM pg_enum
-          WHERE enumtypid = 'selection_mode'::regtype
-          AND enumlabel = ${data.selectionMode}
-        `);
-        if (enumCheck.rows.length > 0) {
-          setParts.push(`selection_mode = $${paramIndex++}`);
-          values.push(data.selectionMode);
-        }
-      } catch (error) {
-        // Enum value doesn't exist, skip
-      }
-    }
-    if (data.minSubjectsToPass !== undefined) {
-      setParts.push(`min_subjects_to_pass = $${paramIndex++}`);
-      values.push(data.minSubjectsToPass);
-    }
-    if (data.totalCutoffMarks !== undefined) {
-      setParts.push(`total_cutoff_marks = $${paramIndex++}`);
-      values.push(data.totalCutoffMarks);
-    }
-    if (data.resultsPublished !== undefined) {
-      setParts.push(`results_published = $${paramIndex++}`);
-      values.push(data.resultsPublished);
-    }
-    if (data.publicRegistrationEnabled !== undefined) {
-      setParts.push(`public_registration_enabled = $${paramIndex++}`);
-      values.push(data.publicRegistrationEnabled);
-    }
-    if (data.numberOfStudentsToSelect !== undefined && data.numberOfStudentsToSelect !== null && !isNaN(data.numberOfStudentsToSelect)) {
-      // Check if column exists before setting
-      try {
-        const columnCheck = await db.execute(sql`
-          SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'admission_years' AND column_name = 'number_of_students_to_select'
-        `);
-        if (columnCheck.rows.length > 0) {
-          setParts.push(`number_of_students_to_select = $${paramIndex++}`);
-          values.push(data.numberOfStudentsToSelect);
-        }
-      } catch (error) {
-        // Column doesn't exist, skip
-      }
-    }
+     if (data.year !== undefined) {
+       updates.push(sql`year = ${data.year}`);
+     }
+     if (data.cutoffMarks !== undefined) {
+       updates.push(sql`cutoff_marks = ${data.cutoffMarks}`);
+     }
+     if (data.isActive !== undefined) {
+       updates.push(sql`is_active = ${data.isActive}`);
+     }
+     if (data.selectionMode !== undefined) {
+       try {
+         const enumCheck = await db.execute(sql`
+           SELECT 1 FROM pg_enum
+           WHERE enumtypid = 'selection_mode'::regtype
+           AND enumlabel = ${data.selectionMode}
+         `);
+         if (enumCheck.rows.length > 0) {
+           updates.push(sql`selection_mode = ${data.selectionMode}`);
+         }
+       } catch (error) {
+         // Enum value doesn't exist, skip
+       }
+     }
+     if (data.minSubjectsToPass !== undefined) {
+       updates.push(sql`min_subjects_to_pass = ${data.minSubjectsToPass}`);
+     }
+     if (data.totalCutoffMarks !== undefined) {
+       updates.push(sql`total_cutoff_marks = ${data.totalCutoffMarks}`);
+     }
+     if (data.resultsPublished !== undefined) {
+       updates.push(sql`results_published = ${data.resultsPublished}`);
+     }
+     if (data.publicRegistrationEnabled !== undefined) {
+       updates.push(sql`public_registration_enabled = ${data.publicRegistrationEnabled}`);
+     }
+     if (data.numberOfStudentsToSelect !== undefined && data.numberOfStudentsToSelect !== null && !isNaN(data.numberOfStudentsToSelect)) {
+       try {
+         const columnCheck = await db.execute(sql`
+           SELECT 1 FROM information_schema.columns
+           WHERE table_name = 'admission_years' AND column_name = 'number_of_students_to_select'
+         `);
+         if (columnCheck.rows.length > 0) {
+           updates.push(sql`number_of_students_to_select = ${data.numberOfStudentsToSelect}`);
+         }
+       } catch (error) {
+         // Column doesn't exist, skip
+       }
+     }
 
-    if (setParts.length === 0) {
-      // No fields to update, just return current
-      return this.getAdmissionYears().then(years => years.find(y => y.id === id)!);
-    }
+     if (updates.length === 0) {
+       return this.getAdmissionYears().then(years => years.find(y => y.id === id)!);
+     }
 
-    values.push(id);
-    const query = `
-      UPDATE admission_years
-      SET ${setParts.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING id, year, cutoff_marks as "cutoffMarks", is_active as "isActive",
-               selection_mode as "selectionMode", min_subjects_to_pass as "minSubjectsToPass",
-               total_cutoff_marks as "totalCutoffMarks", results_published as "resultsPublished",
-               public_registration_enabled as "publicRegistrationEnabled",
-               created_at as "createdAt",
-               number_of_students_to_select as "numberOfStudentsToSelect"
-    `;
-
-    const result = await db.execute(sql.raw(query), values);
-    return result.rows[0] as AdmissionYear;
-  }
+     try {
+       const query = sql`
+         UPDATE admission_years
+         SET ${sql.join(updates, sql`, `)}
+         WHERE id = ${id}
+         RETURNING id, year, cutoff_marks as "cutoffMarks", is_active as "isActive",
+                  selection_mode as "selectionMode", min_subjects_to_pass as "minSubjectsToPass",
+                  total_cutoff_marks as "totalCutoffMarks", results_published as "resultsPublished",
+                  public_registration_enabled as "publicRegistrationEnabled",
+                  created_at as "createdAt",
+                  number_of_students_to_select as "numberOfStudentsToSelect"
+       `;
+       const result = await db.execute(query);
+       return result.rows[0] as AdmissionYear;
+     } catch (error: any) {
+       if (error.message && error.message.includes('number_of_students_to_select')) {
+         const query = sql`
+           UPDATE admission_years
+           SET ${sql.join(updates, sql`, `)}
+           WHERE id = ${id}
+           RETURNING id, year, cutoff_marks as "cutoffMarks", is_active as "isActive",
+                    selection_mode as "selectionMode", min_subjects_to_pass as "minSubjectsToPass",
+                    total_cutoff_marks as "totalCutoffMarks", results_published as "resultsPublished",
+                    public_registration_enabled as "publicRegistrationEnabled",
+                    created_at as "createdAt"
+         `;
+         const result = await db.execute(query);
+         return result.rows[0] as AdmissionYear;
+       }
+       throw error;
+     }
+   }
 
   async calculateSelection(admissionYear: number, selectCount: number): Promise<{ selectedStudents: string[]; totalSelected: number }> {
     // Get all students with exam results for the admission year
