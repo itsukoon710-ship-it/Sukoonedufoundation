@@ -249,24 +249,25 @@ export default function CoordinatorsPage() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="role" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-coord-role">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                    </FormControl>
-                     <SelectContent>
-                       <SelectItem value="admin">Administrator</SelectItem>
-                       <SelectItem value="coordinator">Coordinator</SelectItem>
-                       <SelectItem value="examiner">Examiner</SelectItem>
-                       <SelectItem value="cvu">CVU (Room Allotment & Gate Entry Only)</SelectItem>
+               <FormField control={form.control} name="role" render={({ field }) => (
+                 <FormItem>
+                   <FormLabel>Role</FormLabel>
+                   <FormControl>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <SelectTrigger data-testid="select-coord-role">
+                         <SelectValue placeholder="Select role" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="admin">Administrator</SelectItem>
+                         <SelectItem value="coordinator">Coordinator</SelectItem>
+                         <SelectItem value="examiner">Examiner</SelectItem>
+                         <SelectItem value="cvu">CVU (Room Allotment & Gate Entry Only)</SelectItem>
+                       </SelectContent>
                      </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
+                   </FormControl>
+                   <FormMessage />
+                 </FormItem>
+               )} />
               <FormField control={form.control} name="centerId" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Assign Center</FormLabel>

@@ -1,6 +1,7 @@
-import { useState, useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Student } from "@/shared/schema";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RoomAllotmentPage() {
   const queryClient = useQueryClient();
