@@ -26,7 +26,7 @@ import GateEntryPage from "@/pages/gate-entry";
 import { Skeleton } from "@/components/ui/skeleton";
 import { School } from "lucide-react";
 
-function ProtectedRoute({ component: Component, adminOnly = false, marksEntryOnly = false, roles }: { component: React.ComponentType; adminOnly?: boolean; marksEntryOnly?: boolean; roles?: ("admin" | "coordinator" | "examiner")[] }) {
+function ProtectedRoute({ component: Component, adminOnly = false, marksEntryOnly = false, roles }: { component: React.ComponentType; adminOnly?: boolean; marksEntryOnly?: boolean; roles?: ("admin" | "coordinator" | "examiner" | "cvu")[] }) {
   const { data: user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -112,8 +112,8 @@ function AppLayout() {
                 <Route path="/students" component={() => <ProtectedRoute component={StudentsPage} roles={["admin", "coordinator"]} />} />
                 <Route path="/students/add" component={() => <ProtectedRoute component={AddStudentPage} roles={["admin", "coordinator"]} />} />
                 <Route path="/admit-cards" component={() => <ProtectedRoute component={AdmitCardsPage} roles={["admin", "coordinator"]} />} />
-                <Route path="/room-allotment" component={() => <ProtectedRoute component={RoomAllotmentPage} roles={["admin", "coordinator"]} />} />
-                <Route path="/gate-entry" component={() => <ProtectedRoute component={GateEntryPage} roles={["admin", "coordinator", "examiner"]} />} />
+                <Route path="/room-allotment" component={() => <ProtectedRoute component={RoomAllotmentPage} roles={["admin", "coordinator", "cvu"]} />} />
+                <Route path="/gate-entry" component={() => <ProtectedRoute component={GateEntryPage} roles={["admin", "coordinator", "examiner", "cvu"]} />} />
                 <Route path="/exam-settings" component={() => <ProtectedRoute component={ExamSettingsPage} adminOnly={true} />} />
                 <Route path="/exam-marks" component={() => <ProtectedRoute component={ExamMarksPage} marksEntryOnly={true} />} />
                 <Route path="/interview" component={() => <ProtectedRoute component={InterviewPage} adminOnly={true} />} />

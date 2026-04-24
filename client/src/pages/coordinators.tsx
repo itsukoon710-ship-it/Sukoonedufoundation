@@ -23,7 +23,7 @@ const coordSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   centerId: z.string().optional(),
   admissionYear: z.number().default(2026),
-  role: z.enum(["admin", "coordinator", "examiner"]).default("coordinator"),
+  role: z.enum(["admin", "coordinator", "examiner", "cvu"]).default("coordinator"),
 });
 type CoordForm = z.infer<typeof coordSchema>;
 
@@ -258,12 +258,12 @@ export default function CoordinatorsPage() {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="coordinator">Coordinator</SelectItem>
-                      <SelectItem value="examiner">Examiner</SelectItem>
-                    </SelectContent>
-                  </Select>
+                     <SelectContent>
+                       <SelectItem value="admin">Administrator</SelectItem>
+                       <SelectItem value="coordinator">Coordinator</SelectItem>
+                       <SelectItem value="examiner">Examiner</SelectItem>
+                       <SelectItem value="cvu">CVU (Room Allotment & Gate Entry Only)</SelectItem>
+                     </Select>
                   <FormMessage />
                 </FormItem>
               )} />

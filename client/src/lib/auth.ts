@@ -5,7 +5,7 @@ export type AuthUser = {
   id: string;
   username: string;
   name: string;
-  role: "admin" | "coordinator" | "examiner";
+  role: "admin" | "coordinator" | "examiner" | "cvu";
   centerId: string | null;
   admissionYear: number;
   marksEntryPermission?: boolean;

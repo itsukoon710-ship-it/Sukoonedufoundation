@@ -384,29 +384,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getCoordinators(): Promise<User[]> {
-    try {
-      return await db.select().from(users).where(eq(users.role, "coordinator")).orderBy(users.name);
-    } catch (error: any) {
-      // Handle case where marks_entry_permission column doesn't exist
-      const errorMessage = error.message || error.toString() || '';
-      if (errorMessage.includes('marks_entry_permission') || errorMessage.includes('column') && errorMessage.includes('does not exist')) {
-        console.log('marks_entry_permission column does not exist, fetching without it');
-        const result = await db.select({
-          id: users.id,
-          username: users.username,
-          password: users.password,
-          name: users.name,
-          role: users.role,
-          centerId: users.centerId,
-          admissionYear: users.admissionYear,
-          createdAt: users.createdAt,
-        }).from(users).where(eq(users.role, "coordinator")).orderBy(users.name);
-        return result.map(u => ({ ...u, marksEntryPermission: false } as User));
-      }
-      throw error;
-    }
-  }
+   async getCoordinators(): Promise<User[]> {
+     try {
+       return await db.select().from(users).where(inArray(users.role, ["coordinator", "cvu"])).orderBy(users.name);
+     } catch (error: any) {
+       // Handle case where marks_entry_permission column doesn't exist
+       const errorMessage = error.message || error.toString() || '';
+       if (errorMessage.includes('marks_entry_permission') || errorMessage.includes('column') && errorMessage.includes('does not exist')) {
+         console.log('marks_entry_permission column does not exist, fetching without it');
+         const result = await db.select({
+           id: users.id,
+           username: users.username,
+           password: users.password,
+           name: users.name,
+           role: users.role,
+           centerId: users.centerId,
+           admissionYear: users.admissionYear,
+           createdAt: users.createdAt,
+         }).from(users).where(inArray(users.role, ["coordinator", "cvu"])).orderBy(users.name);
+         return result.map(u => ({ ...u, marksEntryPermission: false } as User));
+       }
+       throw error;
+     }
+   }
 
   async createUser(data: InsertUser): Promise<User> {
     const id = randomUUID();
