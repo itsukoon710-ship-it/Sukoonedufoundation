@@ -4,6 +4,7 @@ import cors from "cors";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
 import { createServer } from "http";
+import { runMigrations } from "./migrate.js";
 
 declare global {
   var migrationsRun: boolean;
@@ -68,9 +69,22 @@ app.use((req, res, next) => {
 });
 
 // Setup routes synchronously (the async parts are handled in the strategy callbacks)
-registerRoutes(httpServer, app).catch(error => {
-  console.error("Error registering routes:", error);
-});
+(async () => {
+  try {
+    // Run migrations before registering routes
+    await runMigrations();
+    
+    // Seed database after migrations
+    const { seedDatabase } = await import("./seed.js");
+    await seedDatabase();
+  } catch (err) {
+    console.error("Migration/Seeding failed:", err);
+  }
+  
+  registerRoutes(httpServer, app).catch(error => {
+    console.error("Error registering routes:", error);
+  });
+})();
 
 app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
