@@ -162,7 +162,7 @@ export default function GateEntryPage() {
         canvas.width,
         canvas.height
       );
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      const code = (window as any).jsQR(imageData.data, imageData.width, imageData.height);
 
       if (code) {
         // Found QR code
@@ -179,10 +179,11 @@ export default function GateEntryPage() {
     }
   };
 
-  // Load jsQR library dynamically
+   // Load jsQR library dynamically
   const loadJsQR = async () => {
-    if (typeof window.jsQR === "undefined") {
-      await import("jsQR");
+    if (typeof (window as any).jsQR === "undefined") {
+      const jsQR = await import("jsqr").then(m => m.default || m.jsQR);
+      (window as any).jsQR = jsQR;
     }
   };
 

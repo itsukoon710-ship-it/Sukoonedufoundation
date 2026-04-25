@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Users, MapPin, UserCheck, FileText, ClipboardList,
-  Award, BarChart2, LogOut, Plus, CreditCard, Settings2,
+  Award, BarChart2, LogOut, Plus, CreditCard, Settings2, Search,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ const adminMenuItems = [
    { title: "Add Student", url: "/students/add", icon: Plus },
    { title: "Students List", url: "/students", icon: Users },
    { title: "Admit Cards", url: "/admit-cards", icon: CreditCard },
+   { title: "Room Allotment", url: "/room-allotment", icon: Users }, // Using Users icon for now
+   { title: "Gate Entry", url: "/gate-entry", icon: Search }, // Using Search icon for now
   ];
 
   const examinerMenuItems = [
