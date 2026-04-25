@@ -36,12 +36,15 @@ export default function CoordinatorsPage() {
 
   const { data: users = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/users"],
+    queryFn: () => apiRequest("GET", "/api/users"),
   });
   const { data: centers = [] } = useQuery<Center[]>({
     queryKey: ["/api/centers"],
+    queryFn: () => apiRequest("GET", "/api/centers"),
   });
   const { data: studentsData } = useQuery<{ students: any[]; total: number }>({
     queryKey: ["/api/students"],
+    queryFn: () => apiRequest("GET", "/api/students"),
   });
   const students = studentsData?.students ?? [];
 

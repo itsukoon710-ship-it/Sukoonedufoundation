@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Printer, Search, CreditCard, QrCode, Info } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import type { Student } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 
@@ -203,16 +204,19 @@ export default function AdmitCardsPage() {
 
   const { data: studentsData, isLoading } = useQuery<{ students: Student[]; total: number }>({
     queryKey: ["/api/students"],
+    queryFn: () => apiRequest("GET", "/api/students"),
   });
 
   const students = studentsData?.students ?? [];
 
   const { data: coords = [] } = useQuery<any[]>({
     queryKey: ["/api/coordinators"],
+    queryFn: () => apiRequest("GET", "/api/coordinators"),
   });
 
   const { data: subjects = [] } = useQuery<any[]>({
     queryKey: ["/api/subjects"],
+    queryFn: () => apiRequest("GET", "/api/subjects"),
   });
 
   const filteredStudents = students.filter(s =>

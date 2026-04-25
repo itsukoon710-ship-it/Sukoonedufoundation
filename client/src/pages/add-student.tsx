@@ -48,10 +48,14 @@ export default function AddStudentPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data: centers = [] } = useQuery<Center[]>({ queryKey: ["/api/centers"] });
+  const { data: centers = [] } = useQuery<Center[]>({
+    queryKey: ["/api/centers"],
+    queryFn: () => apiRequest("GET", "/api/centers"),
+  });
   const { data: coordinators = [] } = useQuery<User[]>({
     queryKey: ["/api/coordinators"],
     enabled: user?.role === "admin",
+    queryFn: () => apiRequest("GET", "/api/coordinators"),
   });
 
   const form = useForm<FormData>({

@@ -50,16 +50,19 @@ export default function InterviewPage() {
 
   const { data: examResultsData, isLoading } = useQuery<{ results: ExamResultWithStudent[]; selectionCriteria: any }>({
     queryKey: ["/api/exam-results"],
+    queryFn: () => apiRequest("GET", "/api/exam-results"),
   });
   const examResults = examResultsData?.results ?? [];
 
   const { data: allStudentsData } = useQuery<{ students: Student[]; total: number }>({
     queryKey: ["/api/students"],
+    queryFn: () => apiRequest("GET", "/api/students"),
   });
   const allStudents = allStudentsData?.students ?? [];
 
   const { data: interviewResults = [] } = useQuery<InterviewResultWithStudent[]>({
     queryKey: ["/api/interview-results"],
+    queryFn: () => apiRequest("GET", "/api/interview-results"),
   });
 
   const mutation = useMutation({

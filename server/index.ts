@@ -68,23 +68,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// Setup routes synchronously (the async parts are handled in the strategy callbacks)
-(async () => {
-  try {
-    // Run migrations before registering routes
-    await runMigrations();
-    
-    // Seed database after migrations
-    const { seedDatabase } = await import("./seed.js");
-    await seedDatabase();
-  } catch (err) {
-    console.error("Migration/Seeding failed:", err);
-  }
-  
-  registerRoutes(httpServer, app).catch(error => {
-    console.error("Error registering routes:", error);
-  });
-})();
+// Run migrations and seed database before registering routes
+try {
+  await runMigrations();
+  const { seedDatabase } = await import("./seed.js");
+  await seedDatabase();
+} catch (err) {
+  console.error("Migration/Seeding failed:", err);
+}
+
+// Register API routes
+try {
+  await registerRoutes(httpServer, app);
+} catch (error) {
+  console.error("Error registering routes:", error);
+}
 
 app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
   const status = err.status || err.statusCode || 500;

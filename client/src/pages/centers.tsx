@@ -33,6 +33,7 @@ export default function CentersPage() {
 
   const { data: centers = [], isLoading } = useQuery<Center[]>({
     queryKey: ["/api/centers"],
+    queryFn: () => apiRequest("GET", "/api/centers"),
   });
 
   const form = useForm<CenterForm>({

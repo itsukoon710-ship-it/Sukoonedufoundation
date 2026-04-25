@@ -103,6 +103,8 @@ export async function runMigrations() {
       { name: 'exam_date', type: 'TEXT' },
       { name: 'exam_center', type: 'TEXT' },
       { name: 'declaration', type: 'BOOLEAN NOT NULL DEFAULT false' },
+      { name: 'room_number', type: 'TEXT' },
+      { name: 'is_present', type: 'BOOLEAN NOT NULL DEFAULT FALSE' },
     ];
     
     for (const column of requiredColumns) {

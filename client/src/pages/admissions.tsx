@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Award, Download, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 import type { Student } from "@shared/schema";
 
 export default function AdmissionsPage() {
@@ -43,6 +44,7 @@ export default function AdmissionsPage() {
 
   const { data: interviewResults = [] } = useQuery<any[]>({
     queryKey: ["/api/interview-results"],
+    queryFn: () => apiRequest("GET", "/api/interview-results"),
   });
 
   const finalStudents = students.filter(s =>

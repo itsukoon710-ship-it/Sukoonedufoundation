@@ -47,10 +47,12 @@ export default function ExamSettingsPage() {
 
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
+    queryFn: () => apiRequest("GET", "/api/subjects"),
   });
 
   const { data: admissionYears = [], isLoading: yearsLoading } = useQuery<AdmissionYear[]>({
     queryKey: ["/api/admission-years"],
+    queryFn: () => apiRequest("GET", "/api/admission-years"),
   });
 
   const activeYear = admissionYears.find(y => y.isActive);

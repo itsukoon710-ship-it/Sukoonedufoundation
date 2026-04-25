@@ -98,11 +98,13 @@ export default function PublicRegistrationPage() {
   // Check if results are published
   const { data: resultsPublished } = useQuery<{ published: boolean }>({
     queryKey: ["/api/public/results-published"],
+    queryFn: () => apiRequest("GET", "/api/public/results-published"),
   });
 
   // Check if public registration is enabled
   const { data: registrationStatus } = useQuery<{ enabled: boolean }>({
     queryKey: ["/api/public/registration-enabled"],
+    queryFn: () => apiRequest("GET", "/api/public/registration-enabled"),
   });
 
   // Check result by roll number

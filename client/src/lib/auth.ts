@@ -14,6 +14,7 @@ export type AuthUser = {
 export function useAuth() {
   return useQuery<AuthUser | null>({
     queryKey: ["/api/auth/me"],
+    queryFn: () => apiRequest("GET", "/api/auth/me"),
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
