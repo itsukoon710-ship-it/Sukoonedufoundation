@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import app from "../server/index.js";
+import app from "../dist/server.js";
 
 // Export the app directly for Vercel serverless functions
 // Database initialization is handled by the server module
