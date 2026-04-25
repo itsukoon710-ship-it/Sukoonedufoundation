@@ -1,0 +1,15 @@
+file:///C:/Users/ahmed/OneDrive/Desktop/Sukoon%20Enrollment%20Project/Sukoon-Enrollment-App/dist/server.js:11
+  throw Error('Dynamic require of "' + x2 + '" is not supported');
+        ^
+
+Error: Dynamic require of "fs" is not supported
+    at file:///C:/Users/ahmed/OneDrive/Desktop/Sukoon%20Enrollment%20Project/Sukoon-Enrollment-App/dist/server.js:11:9
+    at node_modules/dotenv/lib/main.js (file:///C:/Users/ahmed/OneDrive/Desktop/Sukoon%20Enrollment%20Project/Sukoon-Enrollment-App/dist/server.js:111:15)
+    at __require5 (file:///C:/Users/ahmed/OneDrive/Desktop/Sukoon%20Enrollment%20Project/Sukoon-Enrollment-App/dist/server.js:17:50)
+    at file:///C:/Users/ahmed/OneDrive/Desktop/Sukoon%20Enrollment%20Project/Sukoon-Enrollment-App/dist/server.js:145484:3
+    at file:///C:/Users/ahmed/OneDrive/Desktop/Sukoon%20Enrollment%20Project/Sukoon-Enrollment-App/dist/server.js:145491:3
+    at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:123:5)
+
+Node.js v20.16.0

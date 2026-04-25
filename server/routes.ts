@@ -5,6 +5,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { pool } from "./db.js";
 import rateLimit from "express-rate-limit";
 import { storage } from "./storage.js";
@@ -114,9 +115,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.use("/api", apiRateLimiter);
 
   // Session setup - use pg session store with pool from ./db
-  const sessionSecret = process.env.SESSION_SECRET;
+  let sessionSecret = process.env.SESSION_SECRET;
   if (!sessionSecret) {
-    throw new Error("SESSION_SECRET environment variable is required");
+    // Generate a random secret for development/demo purposes
+    // In production, SESSION_SECRET should be set via environment variable
+    console.warn("WARNING: SESSION_SECRET not set, using auto-generated secret. Set SESSION_SECRET environment variable for production.");
+    sessionSecret = crypto.randomBytes(32).toString('hex');
   }
   
   // Use pg session store with the same pool from ./db
