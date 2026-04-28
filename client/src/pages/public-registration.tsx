@@ -627,14 +627,17 @@ export default function PublicRegistrationPage() {
                                       Congratulations!
                                     </h3>
                                     <p className="text-lg text-green-600 font-semibold mb-4">
-                                      You are shortlisted for interview
+                                      You have been shortlisted for the interview.
                                     </p>
                                     <div className="bg-white rounded-lg p-4 shadow-sm">
                                       <p className="text-gray-600 mb-2">
-                                        <span className="font-semibold">Total Marks:</span> {(checkResultMutation.data as any).marks} / {(checkResultMutation.data as any).maxMarks}
+                                        <span className="font-semibold">Date:</span> 3rd May 2026
                                       </p>
-                                      <p className="text-gray-600">
-                                        <span className="font-semibold">Status:</span> Selected for Interview
+                                      <p className="text-gray-600 mb-2">
+                                        <span className="font-semibold">Venue:</span> Sukoon Edu Village, Andhaka, Nuh
+                                      </p>
+                                      <p className="text-gray-600 text-sm italic">
+                                        Please be present on time with necessary documents.
                                       </p>
                                     </div>
                                   </>
@@ -647,14 +650,11 @@ export default function PublicRegistrationPage() {
                                       Result Declared
                                     </h3>
                                     <p className="text-lg text-orange-600 font-semibold mb-4">
-                                      Thank you for participating
+                                      Not Selected for Interview
                                     </p>
                                     <div className="bg-white rounded-lg p-4 shadow-sm">
-                                      <p className="text-gray-600 mb-2">
-                                        <span className="font-semibold">Total Marks:</span> {(checkResultMutation.data as any).marks} / {(checkResultMutation.data as any).maxMarks}
-                                      </p>
-                                      <p className="text-gray-600">
-                                        <span className="font-semibold">Status:</span> Not Selected for Interview
+                                      <p className="text-gray-600 text-center">
+                                        Thank you for appearing in our entrance examination. We regret to inform you that you have not been shortlisted for the interview at this stage. We truly appreciate your effort and interest. We encourage you to continue your learning journey and wish you all the very best for your future.
                                       </p>
                                     </div>
                                   </>
