@@ -98,4 +98,4 @@ The fix ensures that:
 - Empty password fields during updates preserve the existing password
 - All required database columns exist
 - Application gracefully handles missing database columns
- 
+  

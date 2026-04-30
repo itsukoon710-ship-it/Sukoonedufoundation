@@ -68,11 +68,28 @@ export interface IStorage {
    updateStudent(id: string, data: Partial<Student>): Promise<Student>;
    deleteStudent(id: string): Promise<void>;
 
-  // Exam Results (summary)
-  getExamResults(admissionYear?: number): Promise<(ExamResult & { student: Student })[]>;
-  getExamResultByStudentId(studentId: string): Promise<ExamResult | undefined>;
-  createExamResult(data: InsertExamResult): Promise<ExamResult>;
-  updateExamResult(id: string, data: Partial<ExamResult>): Promise<ExamResult>;
+   // Exam Results (summary)
+   getExamResults(admissionYear?: number): Promise<(ExamResult & { student: Student })[]>;
+   getExamResultByStudentId(studentId: string): Promise<ExamResult | undefined>;
+   createExamResult(data: InsertExamResult): Promise<ExamResult>;
+   updateExamResult(id: string, data: Partial<ExamResult>): Promise<ExamResult>;
+
+   // Export
+   getExamResultsExportData(admissionYear?: number): Promise<Array<{
+     applicationId: string;
+     studentName: string;
+     fatherName: string;
+     classApplying: string;
+     mobile: string;
+     status: string;
+     admissionYear: number;
+     totalMarks: number;
+     maxMarks: number;
+     subjectsPassed: number;
+     totalSubjects: number;
+     selectedForInterview: boolean;
+     subjectMarks: Array<{ code: string; name: string; marks: number; maxMarks: number; passingMarks: number }>;
+   }>>;
 
   // Interview Results
   getInterviewResults(admissionYear?: number): Promise<(InterviewResult & { student: Student })[]>;
@@ -856,6 +873,82 @@ export class DatabaseStorage implements IStorage {
   async getExamResultByStudentId(studentId: string): Promise<ExamResult | undefined> {
     const result = await db.select().from(examResults).where(eq(examResults.studentId, studentId)).limit(1);
     return result[0];
+  }
+
+  async getExamResultsExportData(admissionYear?: number): Promise<Array<{
+    applicationId: string;
+    studentName: string;
+    fatherName: string;
+    classApplying: string;
+    mobile: string;
+    status: string;
+    admissionYear: number;
+    totalMarks: number;
+    maxMarks: number;
+    subjectsPassed: number;
+    totalSubjects: number;
+    selectedForInterview: boolean;
+    subjectMarks: Array<{ code: string; name: string; marks: number; maxMarks: number; passingMarks: number }>;
+  }>> {
+    // Get exam results with student details
+    const results = await this.getExamResults(admissionYear);
+    if (results.length === 0) return [];
+
+    const studentIds = results.map(r => r.studentId);
+
+    // Fetch all subject marks for these students, with subject details
+    const allSubjectMarks = await db
+      .select({
+        studentId: studentSubjectMarks.studentId,
+        code: subjects.code,
+        name: subjects.name,
+        marks: studentSubjectMarks.marks,
+        maxMarks: subjects.maxMarks,
+        passingMarks: subjects.passingMarks,
+      })
+      .from(studentSubjectMarks)
+      .innerJoin(subjects, eq(studentSubjectMarks.subjectId, subjects.id))
+      .where(inArray(studentSubjectMarks.studentId, studentIds));
+
+    // Build map: studentId -> subjectMarks array
+    const marksMap = new Map<string, typeof allSubjectMarks>();
+    for (const studentId of studentIds) {
+      marksMap.set(studentId, []);
+    }
+    for (const sm of allSubjectMarks) {
+      const list = marksMap.get(sm.studentId);
+      if (list) list.push(sm);
+    }
+
+    // Build export data
+    return results.map(r => {
+      const subjectMarks = marksMap.get(r.studentId) || [];
+      const totalMarks = subjectMarks.reduce((sum, sm) => sum + sm.marks, 0);
+      const totalMaxMarks = subjectMarks.reduce((sum, sm) => sum + sm.maxMarks, 0);
+      const passedCount = subjectMarks.filter(sm => sm.marks >= sm.passingMarks).length;
+
+      return {
+        applicationId: r.student.applicationId,
+        studentName: r.student.name,
+        fatherName: r.student.fatherName,
+        classApplying: r.student.classApplying,
+        mobile: r.student.mobile || r.student.phone || '',
+        status: r.student.status,
+        admissionYear: r.student.admissionYear,
+        totalMarks,
+        maxMarks: totalMaxMarks,
+        subjectsPassed: passedCount,
+        totalSubjects: subjectMarks.length,
+        selectedForInterview: r.selectedForInterview,
+        subjectMarks: subjectMarks.map(sm => ({
+          code: sm.code,
+          name: sm.name,
+          marks: sm.marks,
+          maxMarks: sm.maxMarks,
+          passingMarks: sm.passingMarks,
+        })),
+      };
+    });
   }
 
   async createExamResult(data: InsertExamResult): Promise<ExamResult> {

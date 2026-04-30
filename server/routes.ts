@@ -723,18 +723,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.put("/api/exam-results/:id", requireMarksEntry, async (req, res) => {
-    try {
-      const id = getStringParam(req.params.id);
-      const data = insertExamResultSchema.partial().parse(req.body);
-      const result = await storage.updateExamResult(id, data);
-      res.json(result);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  });
+   app.put("/api/exam-results/:id", requireMarksEntry, async (req, res) => {
+     try {
+       const id = getStringParam(req.params.id);
+       const data = insertExamResultSchema.partial().parse(req.body);
+       const result = await storage.updateExamResult(id, data);
+       res.json(result);
+     } catch (err: any) {
+       res.status(400).json({ message: err.message });
+     }
+   });
 
-  // STUDENT SUBJECT MARKS
+   // EXPORT EXAM RESULTS
+   app.get("/api/export-exam-results", requireAuth, async (req, res) => {
+     try {
+       const yearParam = req.query.admissionYear;
+       const admissionYear = yearParam ? parseInt(yearParam as string) : undefined;
+       const data = await storage.getExamResultsExportData(admissionYear);
+       res.json(data);
+     } catch (err: any) {
+       res.status(500).json({ message: err.message });
+     }
+   });
+
+   // STUDENT SUBJECT MARKS
   app.get("/api/student-subject-marks/:studentId", requireAuth, async (req, res) => {
     try {
       const studentId = getStringParam(req.params.studentId);

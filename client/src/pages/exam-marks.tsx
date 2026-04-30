@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ClipboardList, CheckCircle2, XCircle, ChevronRight, AlertCircle, BookOpen, Search } from "lucide-react";
+import { ClipboardList, CheckCircle2, XCircle, ChevronRight, AlertCircle, BookOpen, Search, FileDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import type { Student, Subject } from "@shared/schema";
+import * as XLSX from "xlsx";
 
 export default function ExamMarksPage() {
   const { toast } = useToast();
@@ -22,6 +23,7 @@ export default function ExamMarksPage() {
   const [marksInput, setMarksInput] = useState<Record<string, string>>({});
   const [result, setResult] = useState<any>(null);
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
   const limit = 20;
 
   const { data: studentsData, isLoading: studentsLoading } = useQuery<{ students: Student[]; total: number }>({
@@ -96,6 +98,91 @@ export default function ExamMarksPage() {
     setSelectedStudent(null);
     setMarksInput({});
     setResult(null);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const url = activeYear
+        ? `/api/export-exam-results?admissionYear=${activeYear.year}`
+        : `/api/export-exam-results`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch export data");
+      const data = await res.json();
+
+      // Build unique list of subjects
+      const subjectMap = new Map<string, { name: string; maxMarks: number; passingMarks: number }>();
+      data.forEach((row: any) => {
+        if (row.subjectMarks && Array.isArray(row.subjectMarks)) {
+          row.subjectMarks.forEach((sm: any) => {
+            if (!subjectMap.has(sm.code)) {
+              subjectMap.set(sm.code, { name: sm.name, maxMarks: sm.maxMarks, passingMarks: sm.passingMarks });
+            }
+          });
+        }
+      });
+      const subjectCodes = Array.from(subjectMap.keys()).sort();
+
+      // Build headers
+      const headers = [
+        "Application ID", "Student Name", "Father Name", "Class", "Mobile", "Status", "Admission Year",
+        "Total Marks", "Max Marks", "Subjects Passed", "Total Subjects", "Selected for Interview",
+        ...subjectCodes.map(code => `${code} (Marks)`)
+      ];
+
+      // Build rows
+      const rows = data.map((row: any) => {
+        const smMap = new Map(row.subjectMarks?.map((sm: any) => [sm.code, sm.marks] as [string, number]));
+        return [
+          row.applicationId,
+          row.studentName,
+          row.fatherName,
+          row.classApplying,
+          row.mobile,
+          row.status,
+          row.admissionYear,
+          row.totalMarks,
+          row.maxMarks,
+          row.subjectsPassed,
+          row.totalSubjects,
+          row.selectedForInterview ? "Yes" : "No",
+          ...subjectCodes.map(code => smMap.get(code) ?? "")
+        ];
+      });
+
+      // Create worksheet
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+      // Auto column widths
+      const colWidths = [
+        { wch: 15 }, // Application ID
+        { wch: 20 }, // Student Name
+        { wch: 18 }, // Father Name
+        { wch: 10 }, // Class
+        { wch: 15 }, // Mobile
+        { wch: 12 }, // Status
+        { wch: 10 }, // Admission Year
+        { wch: 10 }, // Total Marks
+        { wch: 10 }, // Max Marks
+        { wch: 13 }, // Subjects Passed
+        { wch: 13 }, // Total Subjects
+        { wch: 16 }, // Selected
+        ...subjectCodes.map(() => ({ wch: 12 }))
+      ];
+      ws['!cols'] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Exam Results");
+
+      const fileName = `exam-results-${activeYear?.year || 'all'}-${new Date().toISOString().slice(0,10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast({ title: "Export successful", description: `Downloaded ${fileName}` });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const getInitialMark = (subjectId: string) => {
@@ -207,19 +294,41 @@ export default function ExamMarksPage() {
         </Card>
       )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name, application ID or mobile..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9"
-          data-testid="input-search-student"
-        />
-      </div>
+       {/* Search */}
+       <div className="relative">
+         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+         <Input
+           placeholder="Search by name, application ID or mobile..."
+           value={search}
+           onChange={e => setSearch(e.target.value)}
+           className="pl-9"
+           data-testid="input-search-student"
+         />
+       </div>
 
-      {/* Students Table */}
+       {/* Export Button */}
+       <div className="flex justify-end">
+         <Button
+           variant="outline"
+           onClick={handleExport}
+           disabled={exporting || filteredStudents.length === 0}
+           data-testid="button-export-excel"
+         >
+           {exporting ? (
+             <>
+               <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+               Exporting...
+             </>
+           ) : (
+             <>
+               <FileDown className="mr-2 w-4 h-4" />
+               Export to Excel
+             </>
+           )}
+         </Button>
+       </div>
+
+       {/* Students Table */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
