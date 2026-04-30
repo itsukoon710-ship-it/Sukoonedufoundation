@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { User, Phone, MapPin, GraduationCap, CheckCircle, Search, Bell, Calendar, Download, Printer, QrCode } from "lucide-react";
+import { User, Phone, MapPin, GraduationCap, CheckCircle, Search, Bell, Calendar, Download, Printer, QrCode, MessageCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdmitCard } from "@/components/admit-card";
@@ -18,7 +18,7 @@ import { AdmitCard } from "@/components/admit-card";
 const formSchema = z.object({
   // Student Details
   name: z.string().min(2, "Full name must be at least 2 characters"),
-  age: z.coerce.number().min(5, "Age must be at least 5").max(25, "Age must be at most 25"),
+   age: z.coerce.number().min(10, "Age must be at least 10 years").max(12, "Age must be at most 12 years"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   
   // Parent/Guardian Details
@@ -57,7 +57,7 @@ const indianStates = [
   "Delhi", "Jammu and Kashmir", "Ladakh", "Puducherry", "Chandigarh"
 ];
 
-const classes = ["Class 6", "Class 7"];
+const classes = ["Class 6"];
 
 export default function PublicRegistrationPage() {
   const { toast } = useToast();
@@ -191,15 +191,15 @@ export default function PublicRegistrationPage() {
       return;
     }
     
-    const minDate = new Date("2012-06-01");
-    const maxDate = new Date("2015-03-31");
+     const minDate = new Date("2014-04-01");
+     const maxDate = new Date("2016-03-31");
     const birthDate = new Date(selectedDate);
     
-    if (birthDate < minDate || birthDate > maxDate) {
-      alert("Age not eligible");
-      onChange("");
-      return;
-    }
+     if (birthDate < minDate || birthDate > maxDate) {
+       alert("You are not eligible");
+       onChange("");
+       return;
+     }
     
     onChange(selectedDate);
     
@@ -311,7 +311,7 @@ export default function PublicRegistrationPage() {
           `DOB: ${student.dateOfBirth}`,
           `Class: ${student.classApplying}`,
           `Center: ${student.examCenter || "Sukoon Edu village, Andhaka village, Sudaka, Nuh district, Haryana Pin- 122107"}`,
-          `Date: 26 April, 2026`,
+           `Date: 10 May, 2026`,
           `Year: ${student.admissionYear}`,
         ].join("\n");
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&margin=4`;
@@ -401,7 +401,7 @@ export default function PublicRegistrationPage() {
                 
                 <!-- Exam Details -->
                 <div style="margin-top: 16px; background: linear-gradient(to right, #1e3a8a, #1d4ed8); border-radius: 8px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                  <div><p style="font-size: 9px; color: #93c5fd;">Exam Date</p><p style="font-size: 11px; font-weight: bold; color: white;">26 April, 2026</p></div>
+                   <div><p style="font-size: 9px; color: #93c5fd;">Exam Date</p><p style="font-size: 11px; font-weight: bold; color: white;">10 May, 2026</p></div>
                   <div><p style="font-size: 9px; color: #93c5fd;">Exam Center</p><p style="font-size: 11px; font-weight: bold; color: white;">${student.examCenter || "Sukoon Edu village"}</p></div>
                   <div><p style="font-size: 9px; color: #93c5fd;">Reporting Time</p><p style="font-size: 11px; font-weight: bold; color: white;">09:00 AM</p></div>
                   <div><p style="font-size: 9px; color: #93c5fd;">Admission Year</p><p style="font-size: 11px; font-weight: bold; color: white;">${student.admissionYear}</p></div>
@@ -488,7 +488,7 @@ export default function PublicRegistrationPage() {
           <div className="flex items-center gap-2 text-center">
             <Calendar className="w-4 h-4 flex-shrink-0" />
             <span className="font-semibold text-sm md:text-base">
-              2026 Sukoon Edu Foundation Exam Scheduled for 26 April 2026
+               2026 Sukoon Edu Foundation Exam Scheduled for 10 May 2026
             </span>
           </div>
         </div>
@@ -549,9 +549,29 @@ export default function PublicRegistrationPage() {
                     <p className="text-gray-600 mb-4">
                       Admission registration has closed. Please check back later or contact support for more information.
                     </p>
-                    <p className="text-sm text-gray-500">
-                      The Check Result feature is still available.
-                    </p>
+             <p className="text-sm text-gray-500">
+               The Check Result feature is still available.
+             </p>
+             
+             {/* Contact Buttons */}
+             <div className="flex justify-center gap-4 my-6">
+               <a 
+                 href="tel:+918818076733" 
+                 className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+               >
+                 <Phone className="w-5 h-5" />
+                 Call Us
+               </a>
+               <a 
+                 href="https://wa.me/918818076733" 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+               >
+                 <MessageCircle className="w-5 h-5" />
+                 WhatsApp
+               </a>
+             </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -961,7 +981,27 @@ export default function PublicRegistrationPage() {
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Sukoon Edu Foundation</h1>
             <h2 className="text-lg md:text-xl text-gray-700 mb-2">Student Registration Portal</h2>
-            <p className="text-gray-500 text-sm md:text-base">Please fill in all the required fields accurately</p>
+           <p className="text-gray-500 text-sm md:text-base">Please fill in all the required fields accurately</p>
+           </div>
+
+          {/* Contact Buttons */}
+          <div className="flex justify-center gap-4 my-6">
+            <a 
+              href="tel:+918818076733" 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+            >
+              <Phone className="w-5 h-5" />
+              Call Us
+            </a>
+            <a 
+              href="https://wa.me/918818076733" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+            >
+              <MessageCircle className="w-5 h-5" />
+              WhatsApp
+            </a>
           </div>
 
            {/* Tabs for Registration, Admit Card and Result Checking */}
