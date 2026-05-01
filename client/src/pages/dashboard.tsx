@@ -22,6 +22,7 @@ type DashboardStats = {
     rejected: number 
   }[];
   studentsByState: { state: string; count: number }[];
+  studentsByDistrict: { district: string; count: number }[];
   studentsByAge: { ageGroup: string; count: number }[];
 };
 
@@ -248,9 +249,42 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
 
-      {/* Center Performance */}
+        {/* District-wise Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <CardTitle className="text-base">Students by District</CardTitle>
+            </div>
+            <CardDescription>District-wise enrollment distribution</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-52 w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={stats?.studentsByDistrict || []} barSize={40}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="district" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
+                    labelStyle={{ fontWeight: 600 }}
+                  />
+                  <Bar dataKey="count" name="Students" radius={[4, 4, 0, 0]}>
+                    {(stats?.studentsByDistrict || []).map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Center Performance */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">

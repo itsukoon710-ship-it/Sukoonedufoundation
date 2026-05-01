@@ -97,32 +97,36 @@ export interface IStorage {
   createInterviewResult(data: InsertInterviewResult): Promise<InterviewResult>;
   updateInterviewResult(id: string, data: Partial<InterviewResult>): Promise<InterviewResult>;
 
-  // Dashboard
-  getDashboardStats(admissionYear?: number, coordinatorId?: string): Promise<{
-    totalStudents: number;
-    examCompleted: number;
-    interviewSelected: number;
-    finalAdmissions: number;
-    studentsByCenter: { centerName: string; count: number }[];
-    studentsByCoordinator: { coordinatorName: string; center: string; count: number }[];
-  }>;
+   // Dashboard
+   getDashboardStats(admissionYear?: number, coordinatorId?: string): Promise<{
+     totalStudents: number;
+     examCompleted: number;
+     interviewSelected: number;
+     finalAdmissions: number;
+     studentsByCenter: { centerName: string; count: number }[];
+     studentsByCoordinator: { coordinatorName: string; center: string; count: number }[];
+     studentsByState: { state: string; count: number }[];
+     studentsByDistrict: { district: string; count: number }[];
+     studentsByAge: { ageGroup: string; count: number }[];
+   }>;
 
-  // Admin Dashboard
-  getAdminDashboardStats(admissionYear?: number): Promise<{
-    totalStudents: number;
-    examCompleted: number;
-    interviewSelected: number;
-    finalAdmissions: number;
-    centers: { 
-      centerName: string; 
-      total: number; 
-      admitted: number; 
-      waitlisted: number; 
-      rejected: number 
-    }[];
-    studentsByState: { state: string; count: number }[];
-    studentsByAge: { ageGroup: string; count: number }[];
-  }>;
+   // Admin Dashboard
+   getAdminDashboardStats(admissionYear?: number): Promise<{
+     totalStudents: number;
+     examCompleted: number;
+     interviewSelected: number;
+     finalAdmissions: number;
+     centers: { 
+       centerName: string; 
+       total: number; 
+       admitted: number; 
+       waitlisted: number; 
+       rejected: number 
+     }[];
+     studentsByState: { state: string; count: number }[];
+     studentsByDistrict: { district: string; count: number }[];
+     studentsByAge: { ageGroup: string; count: number }[];
+   }>;
 
   // Generate app ID
   generateApplicationId(admissionYear: number): Promise<string>;
@@ -1131,19 +1135,31 @@ export class DatabaseStorage implements IStorage {
          rejected: data.rejected,
        }));
  
-     // State-wise statistics
-     const stateMap = new Map<string, number>();
-     for (const s of allStudents) {
-       if (s.state) {
-         const currentState = stateMap.get(s.state) || 0;
-         stateMap.set(s.state, currentState + 1);
-       }
-     }
-     const studentsByState = Array.from(stateMap.entries())
-       .map(([state, count]) => ({ state, count }))
-       .sort((a, b) => b.count - a.count); // Sort by count descending
- 
-     // Age-wise statistics
+      // State-wise statistics
+      const stateMap = new Map<string, number>();
+      for (const s of allStudents) {
+        if (s.state) {
+          const currentState = stateMap.get(s.state) || 0;
+          stateMap.set(s.state, currentState + 1);
+        }
+      }
+      const studentsByState = Array.from(stateMap.entries())
+        .map(([state, count]) => ({ state, count }))
+        .sort((a, b) => b.count - a.count); // Sort by count descending
+
+      // District-wise statistics
+      const districtMap = new Map<string, number>();
+      for (const s of allStudents) {
+        if (s.district) {
+          const currentDistrict = districtMap.get(s.district) || 0;
+          districtMap.set(s.district, currentDistrict + 1);
+        }
+      }
+      const studentsByDistrict = Array.from(districtMap.entries())
+        .map(([district, count]) => ({ district, count }))
+        .sort((a, b) => b.count - a.count); // Sort by count descending
+
+      // Age-wise statistics
      const ageMap = new Map<string, number>();
      for (const s of allStudents) {
        if (s.age) {
@@ -1187,17 +1203,18 @@ export class DatabaseStorage implements IStorage {
        })
        .filter(item => item.count > 0);
  
-      return {
-        totalStudents,
-        examCompleted,
-        interviewSelected,
-        finalAdmissions,
-        studentsByCenter,
-        studentsByCenterDetail,
-        studentsByState,
-        studentsByAge,
-        studentsByCoordinator
-      };
+       return {
+         totalStudents,
+         examCompleted,
+         interviewSelected,
+         finalAdmissions,
+         studentsByCenter,
+         studentsByCenterDetail,
+         studentsByState,
+         studentsByDistrict,
+         studentsByAge,
+         studentsByCoordinator
+       };
     }
 
     async getAdminDashboardStats(admissionYear?: number) {
@@ -1275,6 +1292,18 @@ export class DatabaseStorage implements IStorage {
         .map(([state, count]) => ({ state, count }))
         .sort((a, b) => b.count - a.count); // Sort by count descending
 
+      // District-wise statistics
+      const districtMap = new Map<string, number>();
+      for (const s of allStudents) {
+        if (s.district) {
+          const currentDistrict = districtMap.get(s.district) || 0;
+          districtMap.set(s.district, currentDistrict + 1);
+        }
+      }
+      const studentsByDistrict = Array.from(districtMap.entries())
+        .map(([district, count]) => ({ district, count }))
+        .sort((a, b) => b.count - a.count); // Sort by count descending
+
       // Age-wise statistics
       const ageMap = new Map<string, number>();
       for (const s of allStudents) {
@@ -1291,15 +1320,16 @@ export class DatabaseStorage implements IStorage {
           return order.indexOf(a.ageGroup) - order.indexOf(b.ageGroup);
         });
 
-      return { 
-        totalStudents, 
-        examCompleted, 
-        interviewSelected, 
-        finalAdmissions, 
-        centers: centersResult,
-        studentsByState,
-        studentsByAge
-      };
+       return { 
+         totalStudents, 
+         examCompleted, 
+         interviewSelected, 
+         finalAdmissions, 
+         centers: centersResult,
+         studentsByState,
+         studentsByDistrict,
+         studentsByAge
+       };
     }
 
   async generateApplicationId(admissionYear: number): Promise<string> {

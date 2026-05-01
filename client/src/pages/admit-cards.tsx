@@ -26,7 +26,7 @@ function AdmitCard({ student, coordinatorName, subjects }: {
     `DOB: ${student.dateOfBirth}`,
     `Class: ${student.classApplying}`,
     `Center: ${student.examCenter || DEFAULT_EXAM_CENTER}`,
-    `Date: 26 April, 2026`,
+    `Date: 10 May, 2026`,
     `Year: ${student.admissionYear}`,
   ].join("\n");
 
@@ -127,7 +127,7 @@ function AdmitCard({ student, coordinatorName, subjects }: {
 
         {/* Exam Details Box */}
         <div className="mt-4 bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg px-4 py-3 grid grid-cols-2 gap-x-6 gap-y-2">
-          <ExamDetail label="Exam Date" value="26 April, 2026" />
+          <ExamDetail label="Exam Date" value="10 May, 2026" />
           <ExamDetail label="Exam Center" value={student.examCenter || DEFAULT_EXAM_CENTER} />
           <ExamDetail label="Reporting Time" value="09:00 AM" />
           <ExamDetail label="Admission Year" value={String(student.admissionYear)} />

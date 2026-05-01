@@ -590,24 +590,17 @@ export default function PublicRegistrationPage() {
              </p>
              
              {/* Contact Buttons */}
-             <div className="flex justify-center gap-4 my-6">
-               <a 
-                 href="tel:+918818076733" 
-                 className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-colors"
-               >
-                 <Phone className="w-5 h-5" />
-                 Call Us
-               </a>
-               <a 
-                 href="https://wa.me/918818076733" 
-                 target="_blank" 
-                 rel="noopener noreferrer"
-                 className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition-colors"
-               >
-                 <MessageCircle className="w-5 h-5" />
-                 WhatsApp
-               </a>
-             </div>
+             <div className="flex justify-center my-6">
+                <a 
+                  href="https://chat.whatsapp.com/JbMxxjW2YnN08k8kjFEE5R" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Join WhatsApp Community
+                </a>
+              </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -840,25 +833,18 @@ export default function PublicRegistrationPage() {
            <p className="text-gray-500 text-sm md:text-base">Please fill in all the required fields accurately</p>
            </div>
 
-          {/* Contact Buttons */}
-          <div className="flex justify-center gap-4 my-6">
-            <a 
-              href="tel:+918818076733" 
-              className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-colors"
-            >
-              <Phone className="w-5 h-5" />
-              Call Us
-            </a>
-            <a 
-              href="https://wa.me/918818076733" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition-colors"
-            >
-              <MessageCircle className="w-5 h-5" />
-              WhatsApp
-            </a>
-          </div>
+           {/* Contact Buttons */}
+           <div className="flex justify-center my-6">
+             <a 
+               href="https://chat.whatsapp.com/JbMxxjW2YnN08k8kjFEE5R" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+             >
+               <MessageCircle className="w-5 h-5" />
+               Join WhatsApp Community
+             </a>
+           </div>
 
            {/* Tabs for Registration, Admit Card and Result Checking */}
            <Tabs defaultValue="registration" className="w-full">
