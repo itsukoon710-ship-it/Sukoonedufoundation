@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { User, Phone, MapPin, GraduationCap, CheckCircle, Search, Bell, Calendar, Download, Printer, QrCode, MessageCircle } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdmitCard } from "@/components/admit-card";
 
@@ -30,11 +30,12 @@ const formSchema = z.object({
   phone: z.string().regex(/^[6-9]\d{9}$/, "Phone number must be a valid 10-digit Indian mobile number"),
   aadhaarNumber: z.string().regex(/^\d{12}$/, "Aadhaar number must be exactly 12 digits"),
   
-  // Address Details
-  village: z.string().min(2, "Village/Place is required"),
-  district: z.string().min(2, "District is required"),
-  state: z.string().min(2, "State is required"),
-  address: z.string().min(10, "Full address must be at least 10 characters"),
+   // Address Details
+   village: z.string().min(2, "Village/Place is required"),
+   pinCode: z.string().regex(/^\d{6}$/, "PIN code must be exactly 6 digits"),
+   district: z.string().min(2, "District is required"),
+   state: z.string().min(2, "State is required"),
+   address: z.string().min(10, "Full address must be at least 10 characters"),
   
   // Educational Information
   previousSchool: z.string().min(2, "Current school name is required"),
@@ -72,9 +73,12 @@ export default function PublicRegistrationPage() {
   const [admitCardFound, setAdmitCardFound] = useState(false);
   const [admitCardStudent, setAdmitCardStudent] = useState<any>(null);
   const [admitCardError, setAdmitCardError] = useState("");
-  const admitCardPrintRef = useRef<HTMLDivElement>(null);
+   const admitCardPrintRef = useRef<HTMLDivElement>(null);
+   // PIN code auto-fill states
+   const [pinCode, setPinCode] = useState("");
+   const [pinCodeLoading, setPinCodeLoading] = useState(false);
 
-  const form = useForm<FormData>({
+   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -83,12 +87,13 @@ export default function PublicRegistrationPage() {
       fatherName: "",
       fatherOccupation: "",
       motherName: "",
-      phone: "",
-      aadhaarNumber: "",
-      village: "",
-      district: "",
-      state: "",
-      address: "",
+       phone: "",
+       aadhaarNumber: "",
+       village: "",
+       pinCode: "",
+       district: "",
+       state: "",
+       address: "",
       previousSchool: "",
       classApplying: "",
       declaration: false,
@@ -184,32 +189,63 @@ export default function PublicRegistrationPage() {
     return age;
   };
 
-  const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
-    const selectedDate = e.target.value;
-    if (!selectedDate) {
-      onChange("");
-      return;
-    }
-    
-     const minDate = new Date("2014-04-01");
-     const maxDate = new Date("2016-03-31");
-    const birthDate = new Date(selectedDate);
-    
-     if (birthDate < minDate || birthDate > maxDate) {
-       alert("You are not eligible");
+   const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
+     const selectedDate = e.target.value;
+     if (!selectedDate) {
        onChange("");
        return;
      }
-    
-    onChange(selectedDate);
-    
-    const age = calculateAgeFromDOB(selectedDate);
-    if (age !== null) {
-      form.setValue("age", age);
-    }
-  };
+     
+      const minDate = new Date("2014-04-01");
+      const maxDate = new Date("2016-03-31");
+     const birthDate = new Date(selectedDate);
+     
+      if (birthDate < minDate || birthDate > maxDate) {
+        alert("You are not eligible");
+        onChange("");
+        return;
+      }
+     
+     onChange(selectedDate);
+     
+     const age = calculateAgeFromDOB(selectedDate);
+     if (age !== null) {
+       form.setValue("age", age);
+     }
+   };
 
-  const onSubmit = (data: FormData) => mutation.mutate(data);
+   // Fetch district and state from PIN code using API
+   const fetchLocationFromPinCode = async (pincode: string) => {
+     if (pincode.length !== 6) return;
+     setPinCodeLoading(true);
+     try {
+       const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+       const data = await response.json();
+       if (data && data[0] && data[0].PostOffice && data[0].PostOffice.length > 0) {
+         const postOffice = data[0].PostOffice[0];
+         const district = postOffice.District;
+         const state = postOffice.State;
+         if (district) form.setValue('district', district);
+         if (state) form.setValue('state', state);
+       }
+     } catch (error) {
+       console.error("Error fetching PIN code data:", error);
+     } finally {
+       setPinCodeLoading(false);
+     }
+   };
+
+   // Debounced effect to auto-fill location on PIN code change
+   useEffect(() => {
+     const timer = setTimeout(() => {
+       if (pinCode.length === 6) {
+         fetchLocationFromPinCode(pinCode);
+       }
+     }, 600);
+     return () => clearTimeout(timer);
+   }, [pinCode, form]);
+
+   const onSubmit = (data: FormData) => mutation.mutate(data);
 
   const handleCheckResult = () => {
     if (!rollNumber.trim()) {
@@ -776,187 +812,7 @@ export default function PublicRegistrationPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-               {/* Admit Card Download Tab */}
-               <TabsContent value="admit-card-disabled">
-                 <Card className="shadow-lg">
-                   <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
-                     <CardTitle className="flex items-center gap-2">
-                       <Download className="w-5 h-5" />
-                       Download Admit Card
-                     </CardTitle>
-                     <CardDescription className="text-blue-100">
-                       Enter your Aadhaar number to retrieve and download your admit card
-                     </CardDescription>
-                   </CardHeader>
-                   <CardContent className="pt-6">
-                     <div className="space-y-6">
-                       <div className="space-y-4">
-                         <div>
-                           <label htmlFor="aadhaarInputDisabled" className="block text-sm font-medium text-gray-700 mb-2">
-                             Aadhaar Number *
-                           </label>
-                           <Input
-                             id="aadhaarInputDisabled"
-                             type="text"
-                             placeholder="Enter your 12-digit Aadhaar number"
-                             value={aadhaarNumber}
-                             onChange={(e) => setAadhaarNumber(e.target.value)}
-                             className="h-12 text-lg"
-                             maxLength={12}
-                           />
-                           <p className="text-sm text-gray-500 mt-1">
-                             Enter the Aadhaar number you provided during registration
-                           </p>
-                         </div>
-                         <Button 
-                           onClick={handleFetchAdmitCard}
-                           disabled={admitCardMutation.isPending}
-                           className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
-                         >
-                           {admitCardMutation.isPending ? "Fetching..." : "Download Admit Card"}
-                         </Button>
-                       </div>
-
-                       {admitCardFound && admitCardStudent && (
-                         <div className="space-y-4">
-                           <Card className="border-2 border-blue-200 bg-blue-50">
-                             <CardContent className="pt-6">
-                               <div className="text-center mb-4">
-                                 <h3 className="text-xl font-bold text-blue-900">Admit Card Found!</h3>
-                                 <p className="text-gray-600">Application ID: {admitCardStudent.applicationId}</p>
-                               </div>
-                               <div ref={admitCardPrintRef} className="flex justify-center">
-                                 <AdmitCard student={admitCardStudent} subjects={admitCardStudent.subjects || []} />
-                               </div>
-                               <div className="flex justify-center gap-3 mt-4">
-                                 <Button
-                                   onClick={handlePrintAdmitCard}
-                                   variant="outline"
-                                   className="gap-2"
-                                 >
-                                   <Printer className="w-4 h-4" />
-                                   Print
-                                 </Button>
-                                 <Button
-                                   onClick={handleDownloadAdmitCard}
-                                   className="gap-2 bg-green-600 hover:bg-green-700"
-                                 >
-                                   <Download className="w-4 h-4" />
-                                   Download PDF
-                                 </Button>
-                               </div>
-                             </CardContent>
-                           </Card>
-                         </div>
-                       )}
-
-                       {admitCardError && (
-                         <Card className="border-2 border-red-200 bg-red-50">
-                           <CardContent className="pt-6 text-center">
-                             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                               <Search className="w-8 h-8 text-red-600" />
-                             </div>
-                             <h3 className="text-xl font-semibold text-red-700 mb-2">Not Found</h3>
-                             <p className="text-gray-600">{admitCardError}</p>
-                           </CardContent>
-                         </Card>
-                       )}
-                     </div>
-                   </CardContent>
-                 </Card>
-               </TabsContent>
-
-             {/* Admit Card Download Tab */}
-             <TabsContent value="admit-card">
-               <Card className="shadow-lg">
-                 <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
-                   <CardTitle className="flex items-center gap-2">
-                     <Download className="w-5 h-5" />
-                     Download Admit Card
-                   </CardTitle>
-                   <CardDescription className="text-blue-100">
-                     Enter your Aadhaar number to retrieve and download your admit card
-                   </CardDescription>
-                 </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className="space-y-6">
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="aadhaarInputEnabled" className="block text-sm font-medium text-gray-700 mb-2">
-                            Aadhaar Number *
-                          </label>
-                          <Input
-                            id="aadhaarInputEnabled"
-                            type="text"
-                            placeholder="Enter your 12-digit Aadhaar number"
-                            value={aadhaarNumber}
-                            onChange={(e) => setAadhaarNumber(e.target.value)}
-                            className="h-12 text-lg"
-                            maxLength={12}
-                          />
-                          <p className="text-sm text-gray-500 mt-1">
-                            Enter the Aadhaar number you provided during registration
-                          </p>
-                        </div>
-                        <Button 
-                          onClick={handleFetchAdmitCard}
-                          disabled={admitCardMutation.isPending}
-                          className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
-                        >
-                          {admitCardMutation.isPending ? "Fetching..." : "Download Admit Card"}
-                        </Button>
-                      </div>
-
-                      {admitCardFound && admitCardStudent && (
-                        <div className="space-y-4">
-                          <Card className="border-2 border-blue-200 bg-blue-50">
-                            <CardContent className="pt-6">
-                              <div className="text-center mb-4">
-                                <h3 className="text-xl font-bold text-blue-900">Admit Card Found!</h3>
-                                <p className="text-gray-600">Application ID: {admitCardStudent.applicationId}</p>
-                              </div>
-                              <div ref={admitCardPrintRef} className="flex justify-center">
-                                <AdmitCard student={admitCardStudent} subjects={admitCardStudent.subjects || []} />
-                              </div>
-                              <div className="flex justify-center gap-3 mt-4">
-                                <Button
-                                  onClick={handlePrintAdmitCard}
-                                  variant="outline"
-                                  className="gap-2"
-                                >
-                                  <Printer className="w-4 h-4" />
-                                  Print
-                                </Button>
-                                <Button
-                                  onClick={handleDownloadAdmitCard}
-                                  className="gap-2 bg-green-600 hover:bg-green-700"
-                                >
-                                  <Download className="w-4 h-4" />
-                                  Download PDF
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      )}
-
-                      {admitCardError && (
-                        <Card className="border-2 border-red-200 bg-red-50">
-                          <CardContent className="pt-6 text-center">
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Search className="w-8 h-8 text-red-600" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-red-700 mb-2">Not Found</h3>
-                            <p className="text-gray-600">{admitCardError}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  </CardContent>
-               </Card>
-             </TabsContent>
+              </TabsContent>
            </Tabs>
 
             {/* Footer */}
@@ -1213,71 +1069,110 @@ export default function PublicRegistrationPage() {
                         Residential address information
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="village"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Village / Place *</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Enter village or place" className="h-11" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="district"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>District *</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Enter district" className="h-11" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="state"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>State *</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger className="h-11">
-                                    <SelectValue placeholder="Select state" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {indianStates.map(state => (
-                                    <SelectItem key={state} value={state}>{state}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Address *</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter complete residential address" className="h-11" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
+                     <CardContent className="pt-6 space-y-4">
+                       {/* Row 1: Village/Place and PIN Code */}
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <FormField
+                           control={form.control}
+                           name="village"
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormLabel>Village / Place *</FormLabel>
+                               <FormControl>
+                                 <Input {...field} placeholder="Enter village or place" className="h-11" />
+                               </FormControl>
+                               <FormMessage />
+                             </FormItem>
+                           )}
+                         />
+                         <FormField
+                           control={form.control}
+                           name="pinCode"
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormLabel>PIN Code *</FormLabel>
+                               <FormControl>
+                                 <div className="relative">
+                                   <Input
+                                     {...field}
+                                     value={pinCode}
+                                     onChange={(e) => {
+                                       const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                       setPinCode(value);
+                                       field.onChange(value);
+                                     }}
+                                     placeholder="6-digit PIN code"
+                                     className="h-11 pr-10"
+                                     maxLength={6}
+                                   />
+                                   {pinCodeLoading && (
+                                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                       <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                     </div>
+                                   )}
+                                   </div>
+                                 </FormControl>
+                                 <p className="text-xs text-gray-500 mt-1">Auto-fills district and state</p>
+                                 <FormMessage />
+                               </FormItem>
+                             )}
+                           />
+                       </div>
+
+                       {/* Row 2: District and State */}
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <FormField
+                           control={form.control}
+                           name="district"
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormLabel>District *</FormLabel>
+                               <FormControl>
+                                 <Input {...field} placeholder="Enter district" className="h-11" />
+                               </FormControl>
+                               <FormMessage />
+                             </FormItem>
+                           )}
+                         />
+                         <FormField
+                           control={form.control}
+                           name="state"
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormLabel>State *</FormLabel>
+                               <Select onValueChange={field.onChange} value={field.value}>
+                                 <FormControl>
+                                   <SelectTrigger className="h-11">
+                                     <SelectValue placeholder="Select state" />
+                                   </SelectTrigger>
+                                 </FormControl>
+                                 <SelectContent>
+                                   {indianStates.map(state => (
+                                     <SelectItem key={state} value={state}>{state}</SelectItem>
+                                   ))}
+                                 </SelectContent>
+                               </Select>
+                               <FormMessage />
+                             </FormItem>
+                           )}
+                         />
+                       </div>
+
+                       {/* Full Address */}
+                       <FormField
+                         control={form.control}
+                         name="address"
+                         render={({ field }) => (
+                           <FormItem>
+                             <FormLabel>Full Address *</FormLabel>
+                             <FormControl>
+                               <Input {...field} placeholder="Enter complete residential address" className="h-11" />
+                             </FormControl>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     </CardContent>
                   </Card>
 
                   {/* Educational Information */}
@@ -1373,10 +1268,100 @@ export default function PublicRegistrationPage() {
                   </div>
                 </form>
               </Form>
-            </TabsContent>
+             </TabsContent>
 
-            {/* Result Checking Tab */}
-            <TabsContent value="results">
+             {/* Admit Card Download Tab */}
+             <TabsContent value="admit-card">
+               <Card className="shadow-lg">
+                 <CardHeader className="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
+                   <CardTitle className="flex items-center gap-2">
+                     <Download className="w-5 h-5" />
+                     Download Admit Card
+                   </CardTitle>
+                   <CardDescription className="text-blue-100">
+                     Enter your Aadhaar number to retrieve and download your admit card
+                   </CardDescription>
+                 </CardHeader>
+                 <CardContent className="pt-6">
+                   <div className="space-y-6">
+                     <div className="space-y-4">
+                       <div>
+                         <label htmlFor="aadhaarInputEnabled2" className="block text-sm font-medium text-gray-700 mb-2">
+                           Aadhaar Number *
+                         </label>
+                         <Input
+                           id="aadhaarInputEnabled2"
+                           type="text"
+                           placeholder="Enter your 12-digit Aadhaar number"
+                           value={aadhaarNumber}
+                           onChange={(e) => setAadhaarNumber(e.target.value)}
+                           className="h-12 text-lg"
+                           maxLength={12}
+                         />
+                         <p className="text-sm text-gray-500 mt-1">
+                           Enter the Aadhaar number you provided during registration
+                         </p>
+                       </div>
+                       <Button 
+                         onClick={handleFetchAdmitCard}
+                         disabled={admitCardMutation.isPending}
+                         className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+                       >
+                         {admitCardMutation.isPending ? "Fetching..." : "Download Admit Card"}
+                       </Button>
+                     </div>
+
+                     {admitCardFound && admitCardStudent && (
+                       <div className="space-y-4">
+                         <Card className="border-2 border-blue-200 bg-blue-50">
+                           <CardContent className="pt-6">
+                             <div className="text-center mb-4">
+                               <h3 className="text-xl font-bold text-blue-900">Admit Card Found!</h3>
+                               <p className="text-gray-600">Application ID: {admitCardStudent.applicationId}</p>
+                             </div>
+                             <div ref={admitCardPrintRef} className="flex justify-center">
+                               <AdmitCard student={admitCardStudent} subjects={admitCardStudent.subjects || []} />
+                             </div>
+                             <div className="flex justify-center gap-3 mt-4">
+                               <Button
+                                 onClick={handlePrintAdmitCard}
+                                 variant="outline"
+                                 className="gap-2"
+                               >
+                                 <Printer className="w-4 h-4" />
+                                 Print
+                               </Button>
+                               <Button
+                                 onClick={handleDownloadAdmitCard}
+                                 className="gap-2 bg-green-600 hover:bg-green-700"
+                               >
+                                 <Download className="w-4 h-4" />
+                                 Download PDF
+                               </Button>
+                             </div>
+                           </CardContent>
+                         </Card>
+                       </div>
+                     )}
+
+                     {admitCardError && (
+                       <Card className="border-2 border-red-200 bg-red-50">
+                         <CardContent className="pt-6 text-center">
+                           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                             <Search className="w-8 h-8 text-red-600" />
+                           </div>
+                           <h3 className="text-xl font-semibold text-red-700 mb-2">Not Found</h3>
+                           <p className="text-gray-600">{admitCardError}</p>
+                         </CardContent>
+                       </Card>
+                     )}
+                   </div>
+                 </CardContent>
+               </Card>
+             </TabsContent>
+
+             {/* Result Checking Tab */}
+             <TabsContent value="results">
               <Card className="shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
