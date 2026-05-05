@@ -189,30 +189,30 @@ export default function PublicRegistrationPage() {
     return age;
   };
 
-   const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
-     const selectedDate = e.target.value;
-     if (!selectedDate) {
-       onChange("");
-       return;
-     }
-     
-      const minDate = new Date("2014-04-01");
-      const maxDate = new Date("2016-03-31");
-     const birthDate = new Date(selectedDate);
-     
-      if (birthDate < minDate || birthDate > maxDate) {
-        alert("You are not eligible");
+       const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
+      const selectedDate = e.target.value;
+      if (!selectedDate) {
         onChange("");
         return;
       }
-     
-     onChange(selectedDate);
-     
-     const age = calculateAgeFromDOB(selectedDate);
-     if (age !== null) {
-       form.setValue("age", age);
-     }
-   };
+      
+       const minDate = new Date("2014-01-01");
+       const maxDate = new Date("2016-03-31");
+      const birthDate = new Date(selectedDate);
+      
+       if (birthDate < minDate || birthDate > maxDate) {
+         alert("You are not eligible");
+         onChange("");
+         return;
+       }
+      
+      onChange(selectedDate);
+      
+      const age = calculateAgeFromDOB(selectedDate);
+      if (age !== null) {
+        form.setValue("age", age);
+      }
+    };
 
    // Fetch district and state from PIN code using API
    const fetchLocationFromPinCode = async (pincode: string) => {
@@ -347,7 +347,7 @@ export default function PublicRegistrationPage() {
           `DOB: ${student.dateOfBirth}`,
           `Class: ${student.classApplying}`,
           `Center: ${student.examCenter || "Sukoon Edu village, Andhaka village, Sudaka, Nuh district, Haryana Pin- 122107"}`,
-           `Date: 10 May, 2026`,
+            `Date: 10 May 2026`,
           `Year: ${student.admissionYear}`,
         ].join("\n");
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&margin=4`;
@@ -437,7 +437,7 @@ export default function PublicRegistrationPage() {
                 
                 <!-- Exam Details -->
                 <div style="margin-top: 16px; background: linear-gradient(to right, #1e3a8a, #1d4ed8); border-radius: 8px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                   <div><p style="font-size: 9px; color: #93c5fd;">Exam Date</p><p style="font-size: 11px; font-weight: bold; color: white;">10 May, 2026</p></div>
+                    <div><p style="font-size: 9px; color: #93c5fd;">Exam Date</p><p style="font-size: 11px; font-weight: bold; color: white;">10 May 2026</p></div>
                   <div><p style="font-size: 9px; color: #93c5fd;">Exam Center</p><p style="font-size: 11px; font-weight: bold; color: white;">${student.examCenter || "Sukoon Edu village"}</p></div>
                   <div><p style="font-size: 9px; color: #93c5fd;">Reporting Time</p><p style="font-size: 11px; font-weight: bold; color: white;">09:00 AM</p></div>
                   <div><p style="font-size: 9px; color: #93c5fd;">Admission Year</p><p style="font-size: 11px; font-weight: bold; color: white;">${student.admissionYear}</p></div>
