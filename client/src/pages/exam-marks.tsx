@@ -26,10 +26,22 @@ export default function ExamMarksPage() {
   const [exporting, setExporting] = useState(false);
   const limit = 20;
 
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   const { data: studentsData, isLoading: studentsLoading } = useQuery<{ students: Student[]; total: number }>({
-    queryKey: ["/api/students", page, limit],
+    queryKey: ["/api/students", page, limit, search],
     queryFn: async () => {
-      const res = await fetch(`/api/students?page=${page}&limit=${limit}`, {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (search.trim()) {
+        params.set("search", search.trim());
+      }
+      const res = await fetch(`/api/students?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch students");
@@ -82,11 +94,8 @@ export default function ExamMarksPage() {
     ["registered", "exam_scheduled", "exam_done", "selected_for_interview"].includes(s.status)
   );
 
-  const filteredStudents = eligibleStudents.filter(s =>
-     s.name.toLowerCase().includes(search.toLowerCase()) ||
-     s.applicationId.toLowerCase().includes(search.toLowerCase()) ||
-     ((s.mobile || s.phone) ?? '').toLowerCase().includes(search.toLowerCase())
-  );
+  // Server-side search handles filtering across all pages
+  const filteredStudents = eligibleStudents;
 
   const openStudentMarks = (student: Student) => {
     setSelectedStudent(student);
@@ -297,13 +306,13 @@ export default function ExamMarksPage() {
        {/* Search */}
        <div className="relative">
          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-         <Input
-           placeholder="Search by name, application ID or mobile..."
-           value={search}
-           onChange={e => setSearch(e.target.value)}
-           className="pl-9"
-           data-testid="input-search-student"
-         />
+<Input
+            placeholder="Search by name, application ID or mobile..."
+            value={search}
+            onChange={e => handleSearchChange(e.target.value)}
+            className="pl-9"
+            data-testid="input-search-student"
+          />
        </div>
 
        {/* Export Button */}
