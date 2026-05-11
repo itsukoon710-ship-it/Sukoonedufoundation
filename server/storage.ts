@@ -58,8 +58,8 @@ export interface IStorage {
   createStudentSubjectMarks(data: InsertStudentSubjectMarks): Promise<StudentSubjectMarks>;
   deleteStudentSubjectMarks(studentId: string): Promise<void>;
 
-   // Students
-   getStudents(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number; status?: string }, pagination?: { limit: number; offset: number }): Promise<{ students: Student[]; total: number }>;
+// Students
+    getStudents(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number; status?: string; search?: string }, pagination?: { limit: number; offset: number }): Promise<{ students: Student[]; total: number }>;
    getStudentCounts(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number }): Promise<{ total: number; registered: number; selected: number; admitted: number }>;
    getStudentById(id: string): Promise<Student | undefined>;
    getStudentByApplicationId(applicationId: string): Promise<Student | undefined>;
@@ -703,12 +703,17 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getStudents(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number; status?: string }, pagination?: { limit: number; offset: number }): Promise<{ students: Student[]; total: number }> {
+  async getStudents(filters?: { coordinatorId?: string; centerId?: string; admissionYear?: number; status?: string; search?: string }, pagination?: { limit: number; offset: number }): Promise<{ students: Student[]; total: number }> {
     const conditions = [];
     if (filters?.coordinatorId) conditions.push(eq(students.coordinatorId, filters.coordinatorId));
     if (filters?.centerId) conditions.push(eq(students.centerId, filters.centerId));
     if (filters?.admissionYear) conditions.push(eq(students.admissionYear, filters.admissionYear));
     if (filters?.status) conditions.push(eq(students.status, filters.status as any));
+    
+    if (filters?.search && filters.search.trim()) {
+      const searchTerm = `%${filters.search.trim()}%`;
+      conditions.push(sql`(${students.name} ILIKE ${searchTerm} OR ${students.applicationId} ILIKE ${searchTerm} OR ${students.mobile} ILIKE ${searchTerm} OR ${students.phone} ILIKE ${searchTerm})`);
+    }
     
     // Get total count with filters applied
     let total = 0;

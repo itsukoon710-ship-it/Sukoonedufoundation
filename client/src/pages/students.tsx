@@ -25,19 +25,32 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 };
 
 export default function StudentsPage() {
-  const { data: user } = useAuth();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [duplicateSearch, setDuplicateSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const limit = 20;
-  const [, navigate] = useLocation();
-  const qc = useQueryClient();
+const { data: user } = useAuth();
+   const [search, setSearch] = useState("");
+   const [statusFilter, setStatusFilter] = useState("all");
+   const [duplicateSearch, setDuplicateSearch] = useState("");
+   const [page, setPage] = useState(1);
+   const limit = 20;
+   const [, navigate] = useLocation();
+   const qc = useQueryClient();
+
+   const handleSearchChange = (value: string) => {
+     setSearch(value);
+     setPage(1);
+   };
 
   const { data, isLoading } = useQuery<{ students: Student[]; total: number }>({
-    queryKey: ["/api/students", page, limit, statusFilter],
+    queryKey: ["/api/students", page, limit, statusFilter, search],
     queryFn: async () => {
-      const res = await fetch(`/api/students?page=${page}&limit=${limit}&status=${statusFilter}`, {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        status: statusFilter,
+      });
+      if (search.trim()) {
+        params.set("search", search.trim());
+      }
+      const res = await fetch(`/api/students?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch students");
@@ -69,7 +82,7 @@ export default function StudentsPage() {
   });
 
   const deleteStudentMutation = useMutation({
-    mutationFn: async (studentId: number) => {
+    mutationFn: async (studentId: string) => {
       const res = await fetch(`/api/students/${studentId}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -104,25 +117,18 @@ export default function StudentsPage() {
     },
   });
 
-  const students = data?.students ?? [];
+const students = data?.students ?? [];
   const totalStudents = data?.total ?? 0;
   const totalPages = Math.ceil(totalStudents / limit);
+  
+  const filteredStudents = students;
 
-   const filteredStudents = students.filter(s => {
-     const matchSearch = !search ||
-         s.name.toLowerCase().includes(search.toLowerCase()) ||
-         s.applicationId.toLowerCase().includes(search.toLowerCase()) ||
-         ((s.mobile || s.phone) ?? '').toLowerCase().includes(search.toLowerCase());
-     const matchStatus = statusFilter === "all" || s.status === statusFilter;
-     return matchSearch && matchStatus;
-   });
-
-   const handleDelete = (studentId: number) => {
-     if (!window.confirm("Are you sure you want to delete this student? This action cannot be undone.")) {
-       return;
-     }
-     deleteStudentMutation.mutate(studentId);
-   };
+const handleDelete = (studentId: string) => {
+      if (!window.confirm("Are you sure you want to delete this student? This action cannot be undone.")) {
+        return;
+      }
+      deleteStudentMutation.mutate(studentId);
+    };
 
    const studentWithDuplicateFlags = useMemo(() => {
      if (!duplicateSearch) return filteredStudents.map(s => ({ ...s, _isDuplicate: false }));
@@ -257,13 +263,13 @@ export default function StudentsPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, app ID, or phone..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9"
-            data-testid="input-search-students"
-          />
+<Input
+             placeholder="Search by name, app ID, or phone..."
+             value={search}
+             onChange={e => handleSearchChange(e.target.value)}
+             className="pl-9"
+             data-testid="input-search-students"
+           />
          </div>
          <div className="relative flex-1 max-w-sm">
            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
