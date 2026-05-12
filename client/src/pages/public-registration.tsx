@@ -259,6 +259,13 @@ export default function PublicRegistrationPage() {
     checkResultMutation.mutate(rollNumber.trim());
   };
 
+  const getInterviewDate = (marks: number): string => {
+    if (marks >= 61 && marks <= 100) return "16 May 2026";
+    if (marks >= 51 && marks <= 60) return "17 May 2026";
+    if (marks >= 40 && marks <= 50) return "18 May 2026";
+    return "To be announced";
+  };
+
   const handleFetchAdmitCard = () => {
     if (!aadhaarNumber.trim()) {
       toast({ 
@@ -665,9 +672,9 @@ export default function PublicRegistrationPage() {
                               ? "border-green-500 bg-green-50" 
                               : "border-orange-500 bg-orange-50"
                           }`}>
-                            <CardContent className="pt-6">
+                          <CardContent className="pt-6">
                               <div className="text-center">
-                                {(checkResultMutation.data as any).selectedForInterview ? (
+                                {(checkResultMutation.data as any).selectedForInterview && ((checkResultMutation.data as any).marks || 0) >= 40 ? (
                                   <>
                                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                       <CheckCircle className="w-10 h-10 text-green-600" />
@@ -680,7 +687,7 @@ export default function PublicRegistrationPage() {
                                     </p>
                                     <div className="bg-white rounded-lg p-4 shadow-sm">
                                       <p className="text-gray-600 mb-2">
-                                        <span className="font-semibold">Date:</span> 3rd May 2026
+                                        <span className="font-semibold">Date:</span> {getInterviewDate((checkResultMutation.data as any).marks || 0)}
                                       </p>
                                       <p className="text-gray-600 mb-2">
                                         <span className="font-semibold">Venue:</span> Sukoon Edu Village, Andhaka, Nuh
